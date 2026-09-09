@@ -33,7 +33,7 @@ void _showIncompleteProfileDialog(BuildContext context) {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.pop(context); // Fecha o modal primeiro
+                Navigator.pop(context);
                 Get.toNamed(AppRoutes.myDataPage);
               },
               child: const Text("Editar Perfil"),

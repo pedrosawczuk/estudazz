@@ -3,8 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:estudazz_main_code/main.dart' as app;
 
-/// Toca no botão silenciosamente, simulando a callback da interface
-/// sem disparar a mira visual vermelha do framework de testes.
 Future<void> stealthTap(WidgetTester tester, Finder finder) async {
   final widget = tester.firstWidget(finder);
   if (widget is ElevatedButton) {
@@ -18,22 +16,16 @@ Future<void> stealthTap(WidgetTester tester, Finder finder) async {
   } else if (widget is InkWell) {
     widget.onTap?.call();
   } else {
-    // Fallback: vai dar a mira vermelha mas pelo menos clica
-    await tester.tap(finder); 
+    await tester.tap(finder);
   }
 }
 
-/// Digita o texto no campo um caractere por vez com um atraso,
-/// simulando um humano digitando, em vez de injetar tudo de uma vez.
 Future<void> typeTextLikeHuman(WidgetTester tester, Finder finder, String text) async {
-  // Dá um tap normal apenas para focar o campo
   await tester.tap(finder);
   await tester.pump(const Duration(milliseconds: 300));
-  
-  // Oculta o teclado gigantesco que sobe, se possível (embora no Android às vezes ele teima em ficar)
+
   await tester.testTextInput.receiveAction(TextInputAction.done);
-  
-  // Digitação lenta caractere por caractere
+
   for (int i = 1; i <= text.length; i++) {
     await tester.enterText(finder, text.substring(0, i));
     await tester.pump(const Duration(milliseconds: 100));

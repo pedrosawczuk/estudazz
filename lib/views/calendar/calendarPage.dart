@@ -39,7 +39,6 @@ class _CalendarPageState extends State<CalendarPage> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Faixa de Dica (Tutorial de Calendário)
             Container(
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(12),

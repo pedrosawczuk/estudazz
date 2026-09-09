@@ -65,7 +65,7 @@ void main() {
 
     final fabAdd = find.byType(FloatingActionButton);
     expect(fabAdd, findsOneWidget);
-    await tester.tap(fabAdd); // FAB às vezes só responde via tap padrão mesmo
+    await tester.tap(fabAdd);
     await Future.delayed(const Duration(seconds: 2));
     await tester.pumpAndSettle();
 
@@ -116,7 +116,7 @@ void main() {
     if (taskItemEdited.evaluate().isNotEmpty) {
        final checkBox = find.byType(Checkbox).last;
        if (checkBox.evaluate().isNotEmpty) {
-          await tester.tap(checkBox); // Checkbox depende do pointer input
+          await tester.tap(checkBox);
           await Future.delayed(const Duration(seconds: 2));
           await tester.pumpAndSettle();
           

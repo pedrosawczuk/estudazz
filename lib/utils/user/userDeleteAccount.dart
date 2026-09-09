@@ -70,7 +70,7 @@ void showDeleteAccountDialog(BuildContext context) {
                   await currentUser.delete();
 
                   FocusManager.instance.primaryFocus?.unfocus();
-                  Get.back(); // Fecha o modal de exclusão
+                  Get.back();
 
                   CustomSnackBar.show(
                     title: "Conta excluída com sucesso!",
@@ -78,7 +78,6 @@ void showDeleteAccountDialog(BuildContext context) {
                     backgroundColor: ConstColors.greenColor,
                   );
 
-                  // O offAllNamed leva para o SignInPage destruindo as telas antigas
                   Get.offAllNamed(AppRoutes.signInPage);
                 } catch (e) {
                   FocusManager.instance.primaryFocus?.unfocus();

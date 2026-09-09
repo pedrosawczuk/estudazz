@@ -28,7 +28,6 @@ class AppRoutes {
   static const String studyRoomPage = '/studyRoomPage';
   static const String studyRoomDetailsPage = '/studyRoomDetailsPage';
 
-  // -------------- IA
   static const String iaPage = '/iaPage';
   static const String settingsAIPage = '/settingsAIPage';
 
@@ -57,17 +56,14 @@ class AppRoutes {
     ),
     GetPage(name: performancePage, page: () => const PerformancePage()),
 
-    // -------------- IA
     GetPage(name: iaPage, page: () => const IaPage()),
     GetPage(name: settingsAIPage, page: () => const SettingsAIPage()),
 
-    // -------------- SETTINGS
     GetPage(name: notificationsPage, page: () => const NotificationsSettingsPage()),
     GetPage(name: myDataPage, page: () => const MyDataPage()),
     GetPage(name: editDataPage, page: () => const EditDataPage()),
     GetPage(name: aboutPage, page: () => const AboutPage()),
 
-    // -------------- AUTH
     GetPage(name: signUpPage, page: () => const SignUpPage()),
     GetPage(name: signInPage, page: () => const SignInPage()),
     GetPage(name: forgotPasswordPage, page: () => const ForgotPasswordPage()),

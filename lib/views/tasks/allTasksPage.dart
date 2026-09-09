@@ -97,7 +97,6 @@ class _AllTasksPageState extends State<AllTasksPage> {
 
               return Column(
                 children: [
-                  // Faixa de Dica (Tutorial)
                   Container(
                     margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                     padding: const EdgeInsets.all(12),

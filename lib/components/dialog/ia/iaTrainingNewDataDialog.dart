@@ -67,8 +67,8 @@ class _IATrainingNewDataDialogState extends State<IATrainingNewDataDialog> {
         'updated_at': DateTime.now().toIso8601String(),
       });
 
-      FocusManager.instance.primaryFocus?.unfocus(); // Mata o teclado antes de fechar o dialog
-      Get.back(); // Fecha o dialog com segurança via GetX
+      FocusManager.instance.primaryFocus?.unfocus();
+      Get.back();
 
       CustomSnackBar.show(
         title: 'Sucesso!',

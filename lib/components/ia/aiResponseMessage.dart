@@ -37,11 +37,9 @@ class _AIResponseMessageState extends State<AIResponseMessage> {
     displayedText = '';
     int index = 0;
     
-    // Hollywood Mode: Velocidade de digitação agressiva mas progressiva
     _timer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
       if (index < widget.text.length) {
         setState(() {
-          // Incrementa de 2 em 2 ou 1 em 1
           displayedText += widget.text[index];
           index++;
         });
@@ -74,7 +72,7 @@ class _AIResponseMessageState extends State<AIResponseMessage> {
           margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: ConstColors.grey900Color, // Fundo escuro para contraste
+            color: ConstColors.grey900Color,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: ConstColors.orangeColor.withValues(alpha: 0.3)),
           ),
@@ -84,7 +82,7 @@ class _AIResponseMessageState extends State<AIResponseMessage> {
               Theme.of(context),
             ).copyWith(
               p: const TextStyle(
-                color: ConstColors.whiteColor, // Texto Branco Vivo
+                color: ConstColors.whiteColor,
                 fontSize: 16,
                 height: 1.5,
                 fontWeight: FontWeight.w400,

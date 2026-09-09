@@ -25,7 +25,7 @@ class NetworkController extends GetxController {
       if (!(Get.isDialogOpen ?? false)) {
         Get.dialog(
           PopScope(
-            canPop: false, // Bloqueia o fechamento do modal pelo botão de voltar do Android
+            canPop: false,
             child: AlertDialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
@@ -48,7 +48,7 @@ class NetworkController extends GetxController {
       }
     } else {
       if (Get.isDialogOpen ?? false) {
-        Get.back(); // Fecha o dialog automaticamente
+        Get.back();
       }
     }
   }

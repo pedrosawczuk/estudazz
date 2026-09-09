@@ -6,7 +6,6 @@ void main() {
 
   group('App Integration Tests', () {
     testWidgets('placeholder test', (WidgetTester tester) async {
-      // O teste de integração começará aqui.
       expect(true, isTrue);
     });
   });

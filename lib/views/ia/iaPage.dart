@@ -34,7 +34,6 @@ class _IaPageState extends State<IaPage> {
   final AiGeminiServices _aiGeminiServices = AiGeminiServices();
   final List<IaChatModel> _messages = [];
 
-  // Variáveis para Controle de Cota de IA
   int _usedTokens = 0;
   final int _totalTokens = 1000;
 

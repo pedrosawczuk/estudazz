@@ -4,13 +4,13 @@ class TasksDB {
   final CollectionReference tasksCollection = FirebaseFirestore.instance
       .collection('tasks');
 
-  Future<void> addTask({
+  Future<DocumentReference> addTask({
     required String uid,
     required String taskName,
     required String dueDate,
   }) async {
     try {
-      await tasksCollection.add({
+      return await tasksCollection.add({
         'uid': uid,
         'task_name': taskName,
         'created_at': DateTime.now().toIso8601String(),

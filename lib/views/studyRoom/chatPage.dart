@@ -4,8 +4,10 @@ import 'package:estudazz_main_code/models/studyRoom/chatMessageModel.dart';
 import 'package:estudazz_main_code/models/studyRoom/studyRoomModel.dart';
 import 'package:estudazz_main_code/models/user/userModel.dart';
 import 'package:estudazz_main_code/services/db/studyRoom/studyRoomDb.dart';
+import 'package:estudazz_main_code/services/notificationsApi/notificationsApiService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ChatPage extends StatefulWidget {
   final StudyRoomModel room;
@@ -20,6 +22,7 @@ class ChatPage extends StatefulWidget {
 class _ChatPageState extends State<ChatPage> {
   final _textController = TextEditingController();
   final _studyRoomDB = StudyRoomDB();
+  final _notificationsApiService = NotificationsApiService();
   late final Map<String, UserModel> _membersMap;
 
   @override
@@ -28,11 +31,31 @@ class _ChatPageState extends State<ChatPage> {
     _membersMap = {for (var member in widget.members) member.uid: member};
   }
 
-  void _sendMessage() {
-    if (_textController.text.trim().isNotEmpty) {
-      _studyRoomDB.sendChatMessage(widget.room.id, _textController.text.trim());
-      _textController.clear();
+  Future<void> _sendMessage() async {
+    final text = _textController.text.trim();
+    if (text.isEmpty) {
+      return;
     }
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+
+    await _studyRoomDB.sendChatMessage(widget.room.id, text);
+
+    final recipientUids =
+        widget.room.members.where((uid) => uid != currentUser?.uid).toList();
+
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('notif_pref_studyroom') ?? true) {
+      await _notificationsApiService.pushToStudyRoom(
+        roomId: widget.room.id,
+        recipientUids: recipientUids,
+        title: widget.room.name,
+        body:
+            '${_membersMap[currentUser?.uid]?.displayName ?? "Alguém"}: $text',
+      );
+    }
+
+    _textController.clear();
   }
 
   @override

@@ -3,11 +3,15 @@ import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/models/studyRoom/studyRoomModel.dart';
 import 'package:estudazz_main_code/routes/appRoutes.dart';
 import 'package:estudazz_main_code/services/db/studyRoom/studyRoomDb.dart';
+import 'package:estudazz_main_code/services/notificationsApi/notificationsApiService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StudyRoomController extends GetxController {
   final StudyRoomDB _studyRoomDB = StudyRoomDB();
+  final NotificationsApiService _notificationsApiService =
+      NotificationsApiService();
   final _studyRooms = <StudyRoomModel>[].obs;
 
   List<StudyRoomModel> get studyRooms => _studyRooms;
@@ -103,6 +107,16 @@ class StudyRoomController extends GetxController {
 
       await _studyRoomDB.addUserToRoom(room.id, user.uid);
 
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool('notif_pref_studyroom') ?? true) {
+        await _notificationsApiService.pushToStudyRoom(
+          roomId: room.id,
+          recipientUids: room.members,
+          title: 'Nova pessoa na sala',
+          body: '${user.displayName ?? "Alguém"} entrou em "${room.name}"',
+        );
+      }
+
       final updatedRoom = room.copyWith(
         members: List<String>.from(room.members)..add(user.uid),
       );
@@ -151,7 +165,7 @@ class StudyRoomController extends GetxController {
 
   Future<void> deleteRoom(String roomId) async {
     try {
-      _studyRooms.removeWhere((room) => room.id == roomId); // Remove instantaneamente da interface
+      _studyRooms.removeWhere((room) => room.id == roomId);
       await _studyRoomDB.deleteStudyRoom(roomId);
       CustomSnackBar.show(
           title: 'Sucesso!',

@@ -3,10 +3,13 @@ import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
 import 'package:estudazz_main_code/controllers/tasks/taskController.dart';
 import 'package:estudazz_main_code/services/db/tasks/tasksDB.dart';
+import 'package:estudazz_main_code/services/notificationsApi/notificationsApiService.dart';
 import 'package:flutter/material.dart';
 
 class MarkTaskCompletedDialog {
   final TaskController _taskController = TaskController(tasksDB: TasksDB());
+  final NotificationsApiService _notificationsApiService =
+      NotificationsApiService();
 
   Future<void> showMarkTaskCompletedDialog({
     required BuildContext context,
@@ -72,6 +75,10 @@ class MarkTaskCompletedDialog {
                         'task_completed': false,
                         'task_completed_at': null,
                       },
+                    );
+                    await _notificationsApiService.cancelReminder(
+                      type: 'task',
+                      entityId: taskId,
                     );
                     CustomSnackBar.show(
                       title: 'Tarefa Desmarcada',
@@ -139,6 +146,10 @@ class MarkTaskCompletedDialog {
                           'task_completed_at': DateTime.now().toIso8601String(),
                         },
                       );
+                      await _notificationsApiService.cancelReminder(
+                        type: 'task',
+                        entityId: taskId,
+                      );
                       CustomSnackBar.show(
                         title: 'Parabéns!',
                         message: 'Tarefa marcada como concluída.',
@@ -172,6 +183,10 @@ class MarkTaskCompletedDialog {
                   onPressed: () async {
                     try {
                       await _taskController.tasksDB.deleteTask(taskId);
+                      await _notificationsApiService.cancelReminder(
+                        type: 'task',
+                        entityId: taskId,
+                      );
                       CustomSnackBar.show(
                         title: 'Tarefa Excluída',
                         message: 'A tarefa "$taskName" foi excluída.',

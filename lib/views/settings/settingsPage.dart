@@ -7,8 +7,6 @@ import 'package:estudazz_main_code/utils/user/userDeleteAccount.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -18,22 +16,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _notificationsEnabled = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadNotifications();
-  }
-
-  Future<void> _loadNotifications() async {
-    final prefs = await SharedPreferences.getInstance();
-    final enabled = prefs.getBool('notificationsEnabled') ?? true;
-    setState(() {
-      _notificationsEnabled = enabled;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,7 +28,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(),
 
           _buildSectionHeader('Configurações do App'),
-          _buildNotificationsSwitch(),
+          _buildNotificationsListTile(),
           const Divider(),
 
           _buildSectionHeader('Sobre'),
@@ -96,38 +78,13 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildNotificationsSwitch() {
-    return SwitchListTile(
-      secondary: const Icon(Icons.notifications),
-      title: const Text('Receber notificações'),
-      value: _notificationsEnabled,
-      onChanged: (value) async {
-        setState(() {
-          _notificationsEnabled = value;
-        });
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('notificationsEnabled', value);
-        if (value) {
-          try {
-            await OneSignal.User.pushSubscription.optIn();
-          } catch (e) {
-            CustomSnackBar.show(
-              title: 'Erro',
-              message: 'Não foi possível ativar as notificações.',
-              backgroundColor: ConstColors.redColor,
-            );
-          }
-        } else {
-          try {
-            await OneSignal.User.pushSubscription.optOut();
-          } catch (e) {
-            CustomSnackBar.show(
-              title: 'Erro',
-              message: 'Não foi possível desativar as notificações.',
-              backgroundColor: ConstColors.redColor,
-            );
-          }
-        }
+  Widget _buildNotificationsListTile() {
+    return ListTile(
+      leading: const Icon(Icons.notifications),
+      title: const Text('Notificações'),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: () {
+        Get.toNamed(AppRoutes.notificationsPage);
       },
     );
   }

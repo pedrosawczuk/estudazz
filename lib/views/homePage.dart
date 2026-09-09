@@ -1,11 +1,14 @@
 import 'package:estudazz_main_code/components/cards/home/homeCard.dart';
 import 'package:estudazz_main_code/components/custom/customAppBar.dart';
+import 'package:estudazz_main_code/components/dialog/notifications/notificationPermissionDialog.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/routes/appRoutes.dart';
 import 'package:estudazz_main_code/utils/user/authProfileCheck.dart';
 import 'package:estudazz_main_code/utils/user/userAuthCheck.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../controllers/homePageController.dart';
 
 class HomePage extends StatefulWidget {
@@ -22,6 +25,24 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     checkProfileCompletion(_profileController, context);
+    _maybeShowNotificationPermissionPrompt();
+  }
+
+  Future<void> _maybeShowNotificationPermissionPrompt() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeenPrompt =
+        prefs.getBool('hasSeenNotificationPermissionPrompt') ?? false;
+    final hasPermission = OneSignal.Notifications.permission;
+
+    if (!hasSeenPrompt && !hasPermission) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          NotificationPermissionDialog.showNotificationPermissionDialog(
+            context: context,
+          );
+        }
+      });
+    }
   }
 
   @override

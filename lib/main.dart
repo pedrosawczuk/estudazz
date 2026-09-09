@@ -7,7 +7,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:estudazz_main_code/services/connectivity/networkController.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:get/get.dart'; // importando o package raiz do get
+import 'package:get/get.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 
 class InitialBinding extends Bindings {
@@ -19,14 +19,12 @@ class InitialBinding extends Bindings {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // Oculta completamente o "Header" (Relógio, Bateria, Sinal)
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
     OneSignal.initialize(Env.appIdOnesignalKey);
-    OneSignal.Notifications.requestPermission(true);
   } catch (e) {
     debugPrint("=== ERRO FATAL DE INICIALIZAÇÃO INTERCEPTADO: ===");
     debugPrint(e.toString());

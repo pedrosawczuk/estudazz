@@ -1,6 +1,7 @@
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
+import 'package:estudazz_main_code/controllers/calendar/eventController.dart';
 import 'package:estudazz_main_code/services/db/calendar/eventsDB.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -8,6 +9,10 @@ import 'package:intl/intl.dart';
 import 'package:estudazz_main_code/components/dialog/calendar/editEventDialog.dart';
 
 class DetailEventDialog {
+  final EventController _eventController = EventController(
+    eventsDB: EventsDB(),
+  );
+
   void showDetailEventDialog({
     required BuildContext context,
     required String eventName,
@@ -71,7 +76,7 @@ class DetailEventDialog {
             ),
             IconButton(
               onPressed: () async {
-                await EventsDB().deleteEvent(eventId);
+                await _eventController.deleteEvent(eventId);
                 Navigator.of(context).pop();
                 CustomSnackBar.show(
                   title: 'Sucesso!',

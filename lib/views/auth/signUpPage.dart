@@ -22,17 +22,17 @@ class _SignUpPageState extends State<SignUpPage> {
   final TextEditingController _passwordController = TextEditingController();
   final AuthController _authController = AuthController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   void _submitForm() async {
+    if (_isLoading) return;
+    FocusScope.of(context).unfocus();
+
     if (_formKey.currentState!.validate()) {
-      String email = _emailController.text.toLowerCase();
+      String email = _emailController.text.trim().toLowerCase();
       String password = _passwordController.text;
 
-      CustomSnackBar.show(
-        title: 'Aguarde',
-        message: 'Estamos criando sua conta...',
-        backgroundColor: ConstColors.orangeColor,
-      );
+      setState(() => _isLoading = true);
 
       try {
         await _authController.signUp(email, password);
@@ -60,6 +60,8 @@ class _SignUpPageState extends State<SignUpPage> {
           message: 'Erro ao criar conta. Tente novamente mais tarde.',
           backgroundColor: ConstColors.redColor,
         );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -140,13 +142,28 @@ class _SignUpPageState extends State<SignUpPage> {
                 ),
                 ConstSizedBox.h10,
                 ElevatedButton(
-                  onPressed: _submitForm,
+                  onPressed: _isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     fixedSize: const Size(200, 44),
                     backgroundColor: ConstColors.orangeColor,
                     foregroundColor: ConstColors.whiteColor,
+                    disabledBackgroundColor: ConstColors.orangeColor.withValues(alpha: 0.7),
+                    disabledForegroundColor: ConstColors.whiteColor,
                   ),
-                  child: const Text('Criar Conta'),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _isLoading
+                        ? const SizedBox(
+                            key: ValueKey('loading'),
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: ConstColors.whiteColor,
+                            ),
+                          )
+                        : const Text('Criar Conta', key: ValueKey('label')),
+                  ),
                 ),
               ],
             ),

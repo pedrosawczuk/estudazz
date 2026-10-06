@@ -23,17 +23,17 @@ class _SignInPageState extends State<SignInPage> {
   final TextEditingController _passwordController = TextEditingController();
   final AuthController _authController = AuthController();
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
   void _submitForm() async {
+    if (_isLoading) return;
+    FocusScope.of(context).unfocus();
+
     if (_formKey.currentState!.validate()) {
-      String email = _emailController.text.toLowerCase();
+      String email = _emailController.text.trim().toLowerCase();
       String password = _passwordController.text;
 
-      CustomSnackBar.show(
-        title: 'Aguarde',
-        message: 'Entrando...',
-        backgroundColor: ConstColors.orangeColor,
-      );
+      setState(() => _isLoading = true);
 
       try {
         await _authController.signIn(email, password);
@@ -88,6 +88,8 @@ class _SignInPageState extends State<SignInPage> {
           message: 'Falha ao processar o login. Tente novamente.',
           backgroundColor: ConstColors.redColor,
         );
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -183,13 +185,28 @@ class _SignInPageState extends State<SignInPage> {
                 ),
                 ConstSizedBox.h10,
                 ElevatedButton(
-                  onPressed: _submitForm,
+                  onPressed: _isLoading ? null : _submitForm,
                   style: ElevatedButton.styleFrom(
                     fixedSize: const Size(200, 44),
                     backgroundColor: ConstColors.orangeColor,
                     foregroundColor: ConstColors.whiteColor,
+                    disabledBackgroundColor: ConstColors.orangeColor.withValues(alpha: 0.7),
+                    disabledForegroundColor: ConstColors.whiteColor,
                   ),
-                  child: const Text('Entrar'),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: _isLoading
+                        ? const SizedBox(
+                            key: ValueKey('loading'),
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: ConstColors.whiteColor,
+                            ),
+                          )
+                        : const Text('Entrar', key: ValueKey('label')),
+                  ),
                 ),
               ],
             ),

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:estudazz_main_code/env.dart';
 import 'package:estudazz_main_code/firebase_options.dart';
@@ -23,7 +24,7 @@ void main() async {
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-    OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
+    if (kDebugMode) OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
     OneSignal.initialize(Env.appIdOnesignalKey);
   } catch (e) {
     debugPrint("=== ERRO FATAL DE INICIALIZAÇÃO INTERCEPTADO: ===");

@@ -3,6 +3,8 @@ import 'package:estudazz_main_code/components/custom/customAppBar.dart';
 import 'package:estudazz_main_code/components/dialog/notifications/notificationPermissionDialog.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/routes/appRoutes.dart';
+import 'package:estudazz_main_code/services/appUpdate/appUpdateChecker.dart';
+import 'package:estudazz_main_code/services/notificationsApi/notificationRouter.dart';
 import 'package:estudazz_main_code/utils/user/authProfileCheck.dart';
 import 'package:estudazz_main_code/utils/user/userAuthCheck.dart';
 import 'package:flutter/material.dart';
@@ -26,6 +28,12 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     checkProfileCompletion(_profileController, context);
     _maybeShowNotificationPermissionPrompt();
+    // Abre a notificação tocada (inclusive com o app fechado) depois da Home montar
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      NotificationRouter.markReady();
+      AppUpdateChecker.checkOnce();
+    });
   }
 
   Future<void> _maybeShowNotificationPermissionPrompt() async {
@@ -47,6 +55,7 @@ class _HomePageState extends State<HomePage> {
 
   @override
   void dispose() {
+    NotificationRouter.markNotReady();
     super.dispose();
   }
 

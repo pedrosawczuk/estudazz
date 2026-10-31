@@ -10,6 +10,8 @@ class CustomSnackBar {
     Color textColor = ConstColors.whiteColor,
     SnackPosition snackPosition = SnackPosition.BOTTOM,
     Duration duration = const Duration(seconds: 3),
+    String? actionLabel,
+    VoidCallback? onAction,
   }) {
     if (Get.context == null && Get.overlayContext == null) return;
     try {
@@ -22,6 +24,18 @@ class CustomSnackBar {
       duration: duration,
       margin: const EdgeInsets.all(10),
       borderRadius: 8,
+      mainButton: actionLabel != null && onAction != null
+          ? TextButton(
+              onPressed: () {
+                Get.closeCurrentSnackbar();
+                onAction();
+              },
+              child: Text(
+                actionLabel,
+                style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              ),
+            )
+          : null,
     );
     } catch (_) {}
   }

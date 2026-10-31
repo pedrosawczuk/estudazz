@@ -7,6 +7,7 @@ import 'package:estudazz_main_code/theme/appTheme.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:estudazz_main_code/services/connectivity/networkController.dart';
+import 'package:estudazz_main_code/services/notificationsApi/notificationRouter.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
@@ -26,6 +27,7 @@ void main() async {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     if (kDebugMode) OneSignal.Debug.setLogLevel(OSLogLevel.verbose);
     OneSignal.initialize(Env.appIdOnesignalKey);
+    NotificationRouter.init();
   } catch (e) {
     debugPrint("=== ERRO FATAL DE INICIALIZAÇÃO INTERCEPTADO: ===");
     debugPrint(e.toString());

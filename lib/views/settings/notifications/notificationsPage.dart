@@ -1,6 +1,8 @@
 import 'package:estudazz_main_code/components/custom/customAppBar.dart';
 import 'package:estudazz_main_code/components/dialog/notifications/notificationPermissionDialog.dart';
+import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
+import 'package:estudazz_main_code/services/notificationsApi/oneSignalSession.dart';
 import 'package:flutter/material.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -65,6 +67,23 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage>
     await prefs.setBool(key, value);
   }
 
+  // "Novidades" é filtrado pela API via tag no OneSignal, não só localmente
+  Future<void> _setUpdatesPreference(bool value) async {
+    setState(() => _updatesEnabled = value);
+    await _setPreference(OneSignalSession.updatesPrefKey, value);
+    try {
+      await OneSignalSession.syncUpdatesTag();
+    } catch (e) {
+      await _setPreference(OneSignalSession.updatesPrefKey, !value);
+      if (mounted) setState(() => _updatesEnabled = !value);
+      CustomSnackBar.show(
+        title: 'Não foi possível salvar',
+        message: 'Verifique sua conexão e tente novamente.',
+        backgroundColor: ConstColors.redColor,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,10 +140,7 @@ class _NotificationsSettingsPageState extends State<NotificationsSettingsPage>
                       'Anúncios e novidades do Estudazz',
                     ),
                     value: _updatesEnabled,
-                    onChanged: (value) {
-                      setState(() => _updatesEnabled = value);
-                      _setPreference('notif_pref_updates', value);
-                    },
+                    onChanged: _setUpdatesPreference,
                   ),
                 ],
               ),

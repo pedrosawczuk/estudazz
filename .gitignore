@@ -32,6 +32,7 @@ migrate_working_dir/
 .pub-cache/
 .pub/
 /build/
+web/pubspec.lock
 
 # Symbolication related
 app.*.symbols
@@ -49,11 +50,11 @@ android/app/build
 android/app/google-services.json
 ios/Runner/GoogleService-Info.plist
 lib/firebase_options.dart
-firebase.json
 
 # Local environment configuration file
 .env
 env.*
+!lib/env.dart
 *.g.dart
 
 GEMINI.md
@@ -72,4 +73,3 @@ key.properties
 build_*.txt
 *_log.txt
 android/build_log.txt
-

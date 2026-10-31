@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/utils/user/getUserData.dart';
@@ -12,9 +13,19 @@ class IAResetConfirmationDialog extends StatelessWidget {
     final uid = await GetUserData.getUserUid();
     if (uid == null) return;
 
-    await FirebaseFirestore.instance.collection('ia-data').doc(uid).delete();
+    try {
+      await FirebaseFirestore.instance.collection('ia-data').doc(uid).delete();
+    } catch (e) {
+      CustomSnackBar.show(
+        title: 'Erro!',
+        message: 'Não foi possível resetar os dados. Verifique sua conexão.',
+        backgroundColor: ConstColors.redColor,
+      );
+      return;
+    }
 
-      Navigator.of(context).pop();
+    if (!context.mounted) return;
+    Navigator.of(context).pop();
     CustomSnackBar.show(
       title: 'Sucesso!',
       message: 'Dados da IA foram resetados.',
@@ -34,7 +45,7 @@ class IAResetConfirmationDialog extends StatelessWidget {
           onPressed: () => Get.back(),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
+        LoadingButton(
           onPressed: () => _deleteIAData(context),
           style: ElevatedButton.styleFrom(
             foregroundColor: ConstColors.whiteColor,

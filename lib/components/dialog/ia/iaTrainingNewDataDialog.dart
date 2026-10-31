@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
@@ -47,25 +48,32 @@ class _IATrainingNewDataDialogState extends State<IATrainingNewDataDialog> {
     }
   }
 
-  void _confirmIANewData() async {
+  Future<void> _confirmIANewData() async {
     final _firestore = FirebaseFirestore.instance;
     final uid = await GetUserData.getUserUid();
-
-    final snapshot = await _firestore.collection('ia-data').doc(uid).get();
-
     if (uid == null) return;
 
     final text = _textController.text.trim();
     if (text.isNotEmpty) {
-      await _firestore.collection('ia-data').doc(uid).set({
-        'data': text,
-        'uid': uid,
-        'created_at':
-            snapshot.exists
-                ? snapshot['created_at']
-                : DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      });
+      try {
+        final snapshot = await _firestore.collection('ia-data').doc(uid).get();
+        await _firestore.collection('ia-data').doc(uid).set({
+          'data': text,
+          'uid': uid,
+          'created_at':
+              snapshot.exists
+                  ? snapshot['created_at']
+                  : DateTime.now().toIso8601String(),
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+      } catch (e) {
+        CustomSnackBar.show(
+          title: 'Erro!',
+          message: 'Não foi possível salvar os dados. Verifique sua conexão.',
+          backgroundColor: ConstColors.redColor,
+        );
+        return;
+      }
 
       FocusManager.instance.primaryFocus?.unfocus();
       Get.back();
@@ -75,8 +83,6 @@ class _IATrainingNewDataDialogState extends State<IATrainingNewDataDialog> {
         message: 'Dados salvos com sucesso.',
         backgroundColor: ConstColors.greenColor,
       );
-
-      print(text);
     } else {
       CustomSnackBar.show(
         title: 'Erro!',
@@ -112,7 +118,7 @@ class _IATrainingNewDataDialogState extends State<IATrainingNewDataDialog> {
           onPressed: () => Get.back(),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(onPressed: _confirmIANewData, child: const Text('Salvar')),
+        LoadingButton(onPressed: _confirmIANewData, child: const Text('Salvar')),
       ],
     );
   }

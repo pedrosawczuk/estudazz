@@ -1,4 +1,5 @@
 import 'package:estudazz_main_code/constants/color/constColors.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:flutter/material.dart';
 import 'package:estudazz_main_code/services/ia/iaChatStorageService.dart';
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
@@ -20,7 +21,7 @@ class IAResetChat extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
+        LoadingButton(
           onPressed: () async {
             await IaChatStorageService.clearMessages();
             CustomSnackBar.show(

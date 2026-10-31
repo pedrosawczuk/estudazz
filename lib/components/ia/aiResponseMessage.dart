@@ -36,7 +36,7 @@ class _AIResponseMessageState extends State<AIResponseMessage> {
     _timer?.cancel();
     displayedText = '';
     int index = 0;
-    
+
     _timer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
       if (index < widget.text.length) {
         setState(() {
@@ -64,7 +64,8 @@ class _AIResponseMessageState extends State<AIResponseMessage> {
           await Clipboard.setData(ClipboardData(text: widget.text));
           CustomSnackBar.show(
             title: 'Copiado!',
-            message: 'O conteúdo da mensagem foi copiado para a área de transferência.',
+            message:
+                'O conteúdo da mensagem foi copiado para a área de transferência.',
             backgroundColor: ConstColors.orangeColor,
           );
         },
@@ -74,10 +75,14 @@ class _AIResponseMessageState extends State<AIResponseMessage> {
           decoration: BoxDecoration(
             color: ConstColors.grey900Color,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: ConstColors.orangeColor.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: ConstColors.orangeColor.withValues(alpha: 0.3),
+            ),
           ),
           child: MarkdownBody(
             data: displayedText,
+            sizedImageBuilder: (config) => const SizedBox.shrink(),
+            onTapLink: (text, href, title) {},
             styleSheet: MarkdownStyleSheet.fromTheme(
               Theme.of(context),
             ).copyWith(

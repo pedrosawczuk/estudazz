@@ -32,6 +32,8 @@ class UserInputMessage extends StatelessWidget {
           ),
           child: MarkdownBody(
             data: text,
+            sizedImageBuilder: (config) => const SizedBox.shrink(),
+            onTapLink: (text, href, title) {},
             styleSheet: MarkdownStyleSheet.fromTheme(
               Theme.of(context),
             ).copyWith(p: const TextStyle(color: ConstColors.whiteColor)),

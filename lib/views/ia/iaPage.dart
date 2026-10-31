@@ -1,4 +1,5 @@
 import 'package:estudazz_main_code/components/custom/customAppBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
 import 'package:estudazz_main_code/components/ia/aiResponseMessage.dart';
 import 'package:estudazz_main_code/components/ia/userInputMessage.dart';
@@ -25,6 +26,7 @@ class _IaPageState extends State<IaPage> {
 
   Future<void> _loadMessages() async {
     final storedMessages = await IaChatStorageService.loadMessages();
+    if (!mounted) return;
     setState(() {
       _messages.addAll(storedMessages);
     });
@@ -112,7 +114,7 @@ class _IaPageState extends State<IaPage> {
                   ),
                 ),
                 ConstSizedBox.w8,
-                IconButton(
+                LoadingButton.icon(
                   icon: const Icon(Icons.send, color: ConstColors.whiteColor),
                   onPressed: () async {
                     final userInputText = _messageController.text.trim();
@@ -142,6 +144,7 @@ class _IaPageState extends State<IaPage> {
                         userInputText,
                       );
 
+                      if (!mounted) return;
                       setState(() {
                         _messages.insert(
                           0,
@@ -150,10 +153,16 @@ class _IaPageState extends State<IaPage> {
                       });
 
                       await IaChatStorageService.saveMessages(_messages);
-                    } catch (e) {
+                    } on AiServiceException catch (e) {
                       CustomSnackBar.show(
                         title: 'Erro!',
-                        message: 'Erro ao enviar mensagem para a IA. $e',
+                        message: e.message,
+                        backgroundColor: ConstColors.redColor,
+                      );
+                    } catch (_) {
+                      CustomSnackBar.show(
+                        title: 'Erro!',
+                        message: 'Erro ao enviar mensagem para a IA.',
                         backgroundColor: ConstColors.redColor,
                       );
                     }

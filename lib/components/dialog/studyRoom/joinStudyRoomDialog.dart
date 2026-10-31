@@ -1,8 +1,10 @@
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
+import 'package:estudazz_main_code/utils/navigation/closeRoute.dart';
 import 'package:flutter/material.dart';
 import 'package:mask_text_input_formatter/mask_text_input_formatter.dart';
 
 class JoinStudyRoomDialog extends StatefulWidget {
-  final Function(String code) onJoin;
+  final Future<void> Function(String code) onJoin;
 
   const JoinStudyRoomDialog({super.key, required this.onJoin});
 
@@ -56,11 +58,13 @@ class _JoinStudyRoomDialogState extends State<JoinStudyRoomDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
-          onPressed: () {
+        LoadingButton(
+          onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              widget.onJoin(_codeController.text);
-              Navigator.pop(context);
+              // Entrar abre a sala por cima do diálogo; fecha só o próprio diálogo
+              final route = ModalRoute.of(context);
+              await widget.onJoin(_codeController.text);
+              if (mounted) closeRoute(context, route);
             }
           },
           child: const Text('Entrar'),

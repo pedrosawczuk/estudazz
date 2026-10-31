@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:estudazz_main_code/components/custom/customAppBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/components/dialog/studyRoom/createStudyRoomDialog.dart';
 import 'package:estudazz_main_code/components/dialog/studyRoom/editStudyRoomDialog.dart';
 import 'package:estudazz_main_code/components/dialog/studyRoom/joinStudyRoomDialog.dart';
@@ -27,9 +28,8 @@ class _StudyRoomPageState extends State<StudyRoomPage> {
       context: context,
       builder: (BuildContext context) {
         return CreateStudyRoomDialog(
-          onCreate: (name, description) {
-            _studyRoomController.createStudyRoom(name, description);
-          },
+          onCreate: (name, description) =>
+              _studyRoomController.createStudyRoom(name, description),
         );
       },
     );
@@ -40,9 +40,7 @@ class _StudyRoomPageState extends State<StudyRoomPage> {
       context: context,
       builder: (BuildContext context) {
         return JoinStudyRoomDialog(
-          onJoin: (code) {
-            _studyRoomController.joinStudyRoom(code);
-          },
+          onJoin: (code) => _studyRoomController.joinStudyRoom(code),
         );
       },
     );
@@ -124,9 +122,7 @@ class _StudyRoomCard extends StatelessWidget {
       builder:
           (context) => EditStudyRoomDialog(
             currentName: room.name,
-            onSave: (newName) {
-              controller.updateRoomName(room.id, newName);
-            },
+            onSave: (newName) => controller.updateRoomName(room.id, newName),
           ),
     );
   }
@@ -145,10 +141,11 @@ class _StudyRoomCard extends StatelessWidget {
                 onPressed: () => Navigator.pop(context),
                 child: const Text('Cancelar'),
               ),
-              TextButton(
-                onPressed: () {
-                  controller.deleteRoom(room.id);
-                  Navigator.pop(context);
+              LoadingButton(
+                variant: LoadingButtonVariant.text,
+                onPressed: () async {
+                  await controller.deleteRoom(room.id);
+                  if (context.mounted) Navigator.pop(context);
                 },
                 child: const Text(
                   'Excluir',

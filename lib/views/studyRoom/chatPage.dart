@@ -1,4 +1,9 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
+import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/components/studyRoom/chat/messageBubble.dart';
 import 'package:estudazz_main_code/models/studyRoom/chatMessageModel.dart';
 import 'package:estudazz_main_code/models/studyRoom/studyRoomModel.dart';
@@ -37,25 +42,42 @@ class _ChatPageState extends State<ChatPage> {
       return;
     }
 
+    try {
+      await _studyRoomDB.sendChatMessage(widget.room.id, text);
+    } catch (e) {
+      CustomSnackBar.show(
+        title: 'Mensagem não enviada',
+        message: 'Verifique sua conexão e tente novamente.',
+        backgroundColor: ConstColors.redColor,
+      );
+      return;
+    }
+    _textController.clear();
+
+    // Sem await: o push para os outros membros não deve segurar o botão de enviar
+    unawaited(_notifyMembers(text));
+  }
+
+  Future<void> _notifyMembers(String text) async {
     final currentUser = FirebaseAuth.instance.currentUser;
-
-    await _studyRoomDB.sendChatMessage(widget.room.id, text);
-
     final recipientUids =
         widget.room.members.where((uid) => uid != currentUser?.uid).toList();
+    if (recipientUids.isEmpty) return;
 
     final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool('notif_pref_studyroom') ?? true) {
+    if (!(prefs.getBool('notif_pref_studyroom') ?? true)) return;
+
+    // A mensagem já foi enviada; falha no push para os outros membros não bloqueia o chat
+    try {
       await _notificationsApiService.pushToStudyRoom(
         roomId: widget.room.id,
         recipientUids: recipientUids,
         title: widget.room.name,
-        body:
-            '${_membersMap[currentUser?.uid]?.displayName ?? "Alguém"}: $text',
+        body: '${_membersMap[currentUser?.uid]?.displayName ?? "Alguém"}: $text',
       );
+    } on NotificationsApiException catch (e) {
+      debugPrint('Push da sala de estudo não enviado: $e');
     }
-
-    _textController.clear();
   }
 
   @override
@@ -127,7 +149,7 @@ class _ChatPageState extends State<ChatPage> {
             ),
           ),
           const SizedBox(width: 8),
-          IconButton(
+          LoadingButton.icon(
             icon: const Icon(Icons.send),
             onPressed: _sendMessage,
             style: IconButton.styleFrom(

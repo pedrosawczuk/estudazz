@@ -27,33 +27,55 @@ class UserModel {
     this.lastLogin,
   });
 
-  factory UserModel.fromMap(Map<String, dynamic> map, String uid) {
+  factory UserModel.fromMap(
+    Map<String, dynamic> map,
+    String uid, {
+    Map<String, dynamic>? privateMap,
+  }) {
     return UserModel(
       uid: uid,
       displayName: map['display_name'] ?? '',
       username: map['username'] ?? '',
       email: map['email'] ?? '',
-      birthDate: map['birth_date'] ?? '',
-      institution: map['institution'] ?? '',
-      course: map['course'] ?? '',
-      expectedGraduation: map['expected_graduation'] ?? '',
+      birthDate: privateMap?['birth_date'] ?? map['birth_date'] ?? '',
+      institution: privateMap?['institution'] ?? map['institution'] ?? '',
+      course: privateMap?['course'] ?? map['course'] ?? '',
+      expectedGraduation:
+          privateMap?['expected_graduation'] ??
+          map['expected_graduation'] ??
+          '',
       profileCompleted: map['profile_completed'] ?? false,
       photoUrl: map['photoURL'] ?? '',
       lastLogin: (map['last_login'] as Timestamp?)?.toDate(),
     );
   }
 
-  Map<String, dynamic> toMap() {
+  Map<String, dynamic> toPublicMap() {
     return {
+      'uid': uid,
       'display_name': displayName,
       'username': username,
       'email': email,
+      'profile_completed': profileCompleted,
+      'photoURL': photoUrl,
+      if (lastLogin != null) 'last_login': Timestamp.fromDate(lastLogin!),
+    };
+  }
+
+  Map<String, dynamic> toPrivateMap() {
+    return {
+      'uid': uid,
       'birth_date': birthDate,
       'institution': institution,
       'course': course,
       'expected_graduation': expectedGraduation,
-      'profile_completed': profileCompleted,
-      'photoURL': photoUrl,
+    };
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      ...toPublicMap(),
+      ...toPrivateMap(),
       'last_login': lastLogin != null ? Timestamp.fromDate(lastLogin!) : null,
     };
   }

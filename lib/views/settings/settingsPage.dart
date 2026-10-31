@@ -3,6 +3,8 @@ import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/routes/appRoutes.dart';
 import 'package:estudazz_main_code/services/auth/saveUserLocal.dart';
+import 'package:estudazz_main_code/services/ia/iaChatStorageService.dart';
+import 'package:estudazz_main_code/services/notificationsApi/oneSignalSession.dart';
 import 'package:estudazz_main_code/utils/user/userDeleteAccount.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +18,8 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  bool _isLoggingOut = false;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,16 +97,42 @@ class _SettingsPageState extends State<SettingsPage> {
     return ListTile(
       leading: const Icon(Icons.logout, color: ConstColors.redColor),
       title: const Text('Sair', style: TextStyle(color: ConstColors.redColor)),
-      onTap: () async {
-        await FirebaseAuth.instance.signOut();
-        await SaveUserLocal.clearUser();
-        Get.offAllNamed(AppRoutes.signInPage);
-        CustomSnackBar.show(
-          title: 'Desconectado',
-          message: 'Você foi desconectado com sucesso.',
-          backgroundColor: ConstColors.greenColor,
-        );
-      },
+      trailing: _isLoggingOut
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: ConstColors.redColor,
+              ),
+            )
+          : null,
+      onTap: _isLoggingOut ? null : _logout,
+    );
+  }
+
+  Future<void> _logout() async {
+    setState(() => _isLoggingOut = true);
+    try {
+      final currentUid = FirebaseAuth.instance.currentUser?.uid;
+      await IaChatStorageService.clearMessages(uid: currentUid);
+      await FirebaseAuth.instance.signOut();
+      await OneSignalSession.logout();
+      await SaveUserLocal.clearUser();
+    } catch (e) {
+      if (mounted) setState(() => _isLoggingOut = false);
+      CustomSnackBar.show(
+        title: 'Erro!',
+        message: 'Não foi possível sair da conta. Tente novamente.',
+        backgroundColor: ConstColors.redColor,
+      );
+      return;
+    }
+    Get.offAllNamed(AppRoutes.signInPage);
+    CustomSnackBar.show(
+      title: 'Desconectado',
+      message: 'Você foi desconectado com sucesso.',
+      backgroundColor: ConstColors.greenColor,
     );
   }
 

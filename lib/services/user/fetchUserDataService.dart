@@ -7,6 +7,8 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
 
 class FetchUserDataService {
+  static const int _maxUploadSizeBytes = 5 * 1024 * 1024;
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseStorage _storage = FirebaseStorage.instance;
   final ImagePicker _picker = ImagePicker();
@@ -16,32 +18,48 @@ class FetchUserDataService {
     return await _firestore.collection('users').doc(uid).get();
   }
 
-  Future<String?> uploadProfileImageAndSaveUrl(ImageSource source) async {
+  /// Retorna `null` se o usuário cancelar a escolha da imagem.
+  Future<File?> pickProfileImage(ImageSource source) async {
+    final XFile? pickedFile = await _picker.pickImage(
+      source: source,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 80,
+    );
+    return pickedFile == null ? null : File(pickedFile.path);
+  }
+
+  /// Envia a foto e salva a URL no perfil. Lança erro se o envio falhar.
+  Future<String> uploadProfileImage(File imageFile) async {
     final User? user = FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
+    if (user == null) throw StateError('Usuário não autenticado');
 
-    final XFile? pickedFile = await _picker.pickImage(source: source, imageQuality: 80);
+    final int length = await imageFile.length();
+    if (length <= 0 || length > _maxUploadSizeBytes) {
+      throw StateError('A imagem deve ter no máximo 5 MB.');
+    }
 
-    if (pickedFile == null) return null; 
-
-    final File imageFile = File(pickedFile.path);
     final String uid = user.uid;
-    final String filePath = 'users/$uid/profile.jpg';
+    final Reference storageRef = _storage.ref().child('users/$uid/profile.jpg');
 
     try {
-      final UploadTask uploadTask = _storage.ref().child(filePath).putFile(imageFile);
-      final TaskSnapshot snapshot = await uploadTask.whenComplete(() => null);
-      final String downloadUrl = await snapshot.ref.getDownloadURL();
-
-      await _firestore.collection('users').doc(uid).set(
-        {'photoURL': downloadUrl},
-        SetOptions(merge: true),
-      );
-
-      return downloadUrl;
-    } catch (e) {
-      print('Error uploading profile image: $e');
-      return null;
+      await storageRef.delete();
+    } on FirebaseException catch (_) {
+      // Ignora caso não exista foto anterior
     }
+
+    final UploadTask uploadTask = storageRef.putFile(
+      imageFile,
+      SettableMetadata(contentType: 'image/jpeg'),
+    );
+    final TaskSnapshot snapshot = await uploadTask;
+    final String downloadUrl = await snapshot.ref.getDownloadURL();
+
+    await _firestore.collection('users').doc(uid).set(
+      {'photoURL': downloadUrl},
+      SetOptions(merge: true),
+    );
+
+    return downloadUrl;
   }
 }

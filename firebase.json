@@ -1,0 +1,28 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "estudazz",
+          "appId": "1:867461005998:android:c48d11a731f10e49f4a33f",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "estudazz",
+          "configurations": {
+            "android": "1:867461005998:android:c48d11a731f10e49f4a33f",
+            "web": "1:867461005998:web:11b9154b6b17d4e6f4a33f"
+          }
+        }
+      }
+    }
+  }
+}

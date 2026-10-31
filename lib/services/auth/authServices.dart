@@ -1,7 +1,7 @@
 import 'package:estudazz_main_code/services/auth/saveUserLocal.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:estudazz_main_code/services/notificationsApi/oneSignalSession.dart';
 
 class AuthServices {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -13,7 +13,7 @@ class AuthServices {
           .createUserWithEmailAndPassword(email: email, password: password);
 
       final user = userCredential.user!;
-      OneSignal.login(user.uid);
+      await OneSignalSession.login(user.uid);
 
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
@@ -42,7 +42,7 @@ class AuthServices {
 
       if (_firebaseAuth.currentUser != null) {
         final user = _firebaseAuth.currentUser!;
-        OneSignal.login(user.uid);
+        await OneSignalSession.login(user.uid);
         await _firestore.collection('users').doc(user.uid).update({
           'last_login': FieldValue.serverTimestamp(),
         });

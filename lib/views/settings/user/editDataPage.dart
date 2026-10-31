@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:estudazz_main_code/components/custom/customAppBar.dart';
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
 import 'package:estudazz_main_code/models/user/userModel.dart';
@@ -9,6 +10,8 @@ import 'package:estudazz_main_code/utils/user/getUserData.dart';
 import 'package:estudazz_main_code/utils/validators/TextFieldValidator.dart';
 import 'package:estudazz_main_code/utils/validators/birthDateValidator.dart';
 import 'package:estudazz_main_code/utils/validators/graduationDateValidator.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -51,15 +54,27 @@ class _EditDataPageState extends State<EditDataPage> {
 
   Future<void> _loadUserData() async {
     final uid = await GetUserData.getUserUid();
-    final snapshot =
-        await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    if (uid == null) return;
+
+    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+    final results = await Future.wait([
+      userRef.get(),
+      userRef.collection('private').doc('profile').get(),
+    ]);
+    final snapshot = results[0];
+    final privateSnapshot = results[1];
 
     if (snapshot.exists) {
-      final user = UserModel.fromMap(snapshot.data()!, uid!);
+      final user = UserModel.fromMap(
+        snapshot.data()!,
+        uid,
+        privateMap: privateSnapshot.data(),
+      );
 
       _nameController.text = user.displayName;
       _usernameController.text = user.username;
-      _emailController.text = user.email;
+      _emailController.text =
+          FirebaseAuth.instance.currentUser?.email ?? user.email;
       _birthDateController.text = user.birthDate;
       _institutionController.text = user.institution;
       _courseController.text = user.course;
@@ -71,28 +86,46 @@ class _EditDataPageState extends State<EditDataPage> {
   Future<void> _saveUserData() async {
     try {
       if (_formKey.currentState?.validate() ?? false) {
-        final uid = await GetUserData.getUserUid();
+        final currentUser = FirebaseAuth.instance.currentUser;
+        final uid = currentUser?.uid ?? await GetUserData.getUserUid();
+        if (uid == null) return;
+
+        final verifiedEmail = currentUser?.email ?? _emailController.text.trim();
 
         final updatedUser = UserModel(
-          uid: uid!,
-          displayName: _nameController.text,
-          username: _usernameController.text,
-          email: _emailController.text,
-          birthDate: _birthDateController.text,
-          institution: _institutionController.text,
-          course: _courseController.text,
-          expectedGraduation: _graduationDateController.text,
+          uid: uid,
+          displayName: _nameController.text.trim(),
+          username: _usernameController.text.trim(),
+          email: verifiedEmail,
+          birthDate: _birthDateController.text.trim(),
+          institution: _institutionController.text.trim(),
+          course: _courseController.text.trim(),
+          expectedGraduation: _graduationDateController.text.trim(),
           profileCompleted: true,
           photoUrl: _photoUrl,
         );
 
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(uid)
-            .update(updatedUser.toMap());
+        final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+        final batch = FirebaseFirestore.instance.batch();
 
-        FocusManager.instance.primaryFocus?.unfocus(); 
-        Get.back(); 
+        batch.update(userRef, {
+          ...updatedUser.toPublicMap(),
+          'birth_date': FieldValue.delete(),
+          'institution': FieldValue.delete(),
+          'course': FieldValue.delete(),
+          'expected_graduation': FieldValue.delete(),
+        });
+
+        batch.set(
+          userRef.collection('private').doc('profile'),
+          updatedUser.toPrivateMap(),
+          SetOptions(merge: true),
+        );
+
+        await batch.commit();
+
+        FocusManager.instance.primaryFocus?.unfocus();
+        Get.back();
         CustomSnackBar.show(
           title: 'Sucesso!',
           message: 'Dados atualizados com sucesso!',
@@ -101,12 +134,15 @@ class _EditDataPageState extends State<EditDataPage> {
       } else {
         CustomSnackBar.show(
           title: 'Atenção!',
-          message: 'Verifique se você preencheu todos os campos obrigatórios corretamente.',
+          message:
+              'Verifique se você preencheu todos os campos obrigatórios corretamente.',
           backgroundColor: ConstColors.orangeColor,
         );
       }
     } catch (e) {
-      print(e);
+      if (kDebugMode) {
+        debugPrint('Erro ao atualizar dados do usuário: $e');
+      }
       CustomSnackBar.show(
         title: 'Erro!',
         message: 'Erro ao atualizar os dados. Tente novamente mais tarde.',
@@ -116,7 +152,11 @@ class _EditDataPageState extends State<EditDataPage> {
     }
   }
 
-  InputDecoration _buildPremiumDecoration(String label, IconData icon, {String? hint}) {
+  InputDecoration _buildPremiumDecoration(
+    String label,
+    IconData icon, {
+    String? hint,
+  }) {
     return InputDecoration(
       labelText: label,
       hintText: hint,
@@ -135,7 +175,11 @@ class _EditDataPageState extends State<EditDataPage> {
     );
   }
 
-  Widget _buildSectionCard({required String title, required IconData sectionIcon, required List<Widget> children}) {
+  Widget _buildSectionCard({
+    required String title,
+    required IconData sectionIcon,
+    required List<Widget> children,
+  }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -158,7 +202,11 @@ class _EditDataPageState extends State<EditDataPage> {
               ConstSizedBox.w8,
               Text(
                 title,
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: ConstColors.whiteColor),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: ConstColors.whiteColor,
+                ),
               ),
             ],
           ),
@@ -190,16 +238,24 @@ class _EditDataPageState extends State<EditDataPage> {
                       controller: _nameController,
                       inputFormatters: [nameFormatter],
                       keyboardType: TextInputType.text,
-                      decoration: _buildPremiumDecoration('Nome', Icons.badge_outlined),
-                      validator: (value) => textFieldValidator(value, 'Nome é obrigatório'),
+                      decoration: _buildPremiumDecoration(
+                        'Nome',
+                        Icons.badge_outlined,
+                      ),
+                      validator: (value) =>
+                          textFieldValidator(value, 'Nome é obrigatório'),
                     ),
                     ConstSizedBox.h16,
                     TextFormField(
                       controller: _usernameController,
                       inputFormatters: [usernameFormatter],
                       keyboardType: TextInputType.text,
-                      decoration: _buildPremiumDecoration('Username', Icons.alternate_email),
-                      validator: (value) => textFieldValidator(value, 'Username é obrigatório'),
+                      decoration: _buildPremiumDecoration(
+                        'Username',
+                        Icons.alternate_email,
+                      ),
+                      validator: (value) =>
+                          textFieldValidator(value, 'Username é obrigatório'),
                     ),
                     ConstSizedBox.h16,
                     GestureDetector(
@@ -213,8 +269,12 @@ class _EditDataPageState extends State<EditDataPage> {
                       child: TextFormField(
                         controller: _emailController,
                         enabled: false,
-                        decoration: _buildPremiumDecoration('Email', Icons.email_outlined),
-                        validator: (value) => textFieldValidator(value, 'Email é obrigatório'),
+                        decoration: _buildPremiumDecoration(
+                          'Email',
+                          Icons.email_outlined,
+                        ),
+                        validator: (value) =>
+                            textFieldValidator(value, 'Email é obrigatório'),
                       ),
                     ),
                     ConstSizedBox.h16,
@@ -222,7 +282,11 @@ class _EditDataPageState extends State<EditDataPage> {
                       controller: _birthDateController,
                       inputFormatters: [birthDateFormatter],
                       keyboardType: TextInputType.number,
-                      decoration: _buildPremiumDecoration('Data de Nascimento', Icons.cake_outlined, hint: 'DD/MM/AAAA'),
+                      decoration: _buildPremiumDecoration(
+                        'Data de Nascimento',
+                        Icons.cake_outlined,
+                        hint: 'DD/MM/AAAA',
+                      ),
                       validator: birthDateValidator,
                     ),
                   ],
@@ -236,21 +300,34 @@ class _EditDataPageState extends State<EditDataPage> {
                   children: [
                     TextFormField(
                       controller: _institutionController,
-                      decoration: _buildPremiumDecoration('Instituição', Icons.account_balance_outlined),
-                      validator: (value) => textFieldValidator(value, 'Instituição é obrigatória'),
+                      decoration: _buildPremiumDecoration(
+                        'Instituição',
+                        Icons.account_balance_outlined,
+                      ),
+                      validator: (value) => textFieldValidator(
+                        value,
+                        'Instituição é obrigatória',
+                      ),
                     ),
                     ConstSizedBox.h16,
                     TextFormField(
                       controller: _courseController,
-                      decoration: _buildPremiumDecoration('Curso', Icons.menu_book_outlined),
-                      validator: (value) => textFieldValidator(value, 'Curso é obrigatório'),
+                      decoration: _buildPremiumDecoration(
+                        'Curso',
+                        Icons.menu_book_outlined,
+                      ),
+                      validator: (value) =>
+                          textFieldValidator(value, 'Curso é obrigatório'),
                     ),
                     ConstSizedBox.h16,
                     TextFormField(
                       controller: _graduationDateController,
                       inputFormatters: [graduationDateFormatter],
                       keyboardType: TextInputType.number,
-                      decoration: _buildPremiumDecoration('Conclusão (MM/AAAA)', Icons.timeline),
+                      decoration: _buildPremiumDecoration(
+                        'Conclusão (MM/AAAA)',
+                        Icons.timeline,
+                      ),
                       validator: graduationDateValidator,
                     ),
                   ],
@@ -258,10 +335,10 @@ class _EditDataPageState extends State<EditDataPage> {
 
                 ConstSizedBox.h32,
 
-                ElevatedButton.icon(
+                LoadingButton(
                   onPressed: _saveUserData,
                   icon: const Icon(Icons.check_circle_outline, size: 28),
-                  label: const Text(
+                  child: const Text(
                     'Salvar Alterações',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),

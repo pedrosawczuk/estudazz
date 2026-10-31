@@ -1,4 +1,5 @@
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
 import 'package:estudazz_main_code/controllers/calendar/eventController.dart';
@@ -73,7 +74,7 @@ class AddEventDialog {
                   onPressed: () => Get.back(),
                   child: const Text('Cancelar'),
                 ),
-                ElevatedButton(
+                LoadingButton(
                   onPressed: () async {
                     if (selectedTime == null) {
                       CustomSnackBar.show(
@@ -108,14 +109,18 @@ class AddEventDialog {
                       eventDate: fullDateTime,
                     );
 
-                    if (result == AddEventResult.success) {
+                    if (result == AddEventResult.success ||
+                        result == AddEventResult.savedWithoutReminder) {
                       _eventNameController.clear();
                       Navigator.of(context).pop();
-                      CustomSnackBar.show(
-                        title: 'Evento Adicionado',
-                        message: 'Evento adicionado com sucesso.',
-                        backgroundColor: ConstColors.greenColor,
-                      );
+                      // Sem lembrete o aviso com "Tentar de novo" já foi exibido
+                      if (result == AddEventResult.success) {
+                        CustomSnackBar.show(
+                          title: 'Evento Adicionado',
+                          message: 'Evento adicionado com sucesso.',
+                          backgroundColor: ConstColors.greenColor,
+                        );
+                      }
                     } else if (result == AddEventResult.emptyName) {
                       CustomSnackBar.show(
                         title: 'Erro!',
@@ -127,7 +132,13 @@ class AddEventDialog {
                         title: 'Erro!',
                         message: 'A data do evento não pode ser no passado.',
                         backgroundColor: ConstColors.redColor,
-      );
+                      );
+                    } else if (result == AddEventResult.error) {
+                      CustomSnackBar.show(
+                        title: 'Erro!',
+                        message: 'Não foi possível salvar o evento. Verifique sua conexão.',
+                        backgroundColor: ConstColors.redColor,
+                      );
                     }
                   },
                   child: const Text('Salvar'),

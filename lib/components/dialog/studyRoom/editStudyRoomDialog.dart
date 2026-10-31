@@ -1,8 +1,10 @@
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
+import 'package:estudazz_main_code/utils/navigation/closeRoute.dart';
 import 'package:flutter/material.dart';
 
 class EditStudyRoomDialog extends StatefulWidget {
   final String currentName;
-  final Function(String newName) onSave;
+  final Future<void> Function(String newName) onSave;
 
   const EditStudyRoomDialog({
     super.key,
@@ -48,11 +50,12 @@ class _EditStudyRoomDialogState extends State<EditStudyRoomDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
-          onPressed: () {
+        LoadingButton(
+          onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              widget.onSave(_nameController.text);
-              Navigator.pop(context);
+              final route = ModalRoute.of(context);
+              await widget.onSave(_nameController.text);
+              if (mounted) closeRoute(context, route);
             }
           },
           child: const Text('Salvar'),

@@ -1,13 +1,12 @@
 import 'package:estudazz_main_code/services/db/calendar/eventsDB.dart';
-import 'package:estudazz_main_code/services/notificationsApi/notificationsApiService.dart';
+import 'package:estudazz_main_code/services/notificationsApi/reminderFeedback.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-enum AddEventResult { success, emptyName, pastDate }
+/// `savedWithoutReminder`: o evento foi salvo, mas o lembrete falhou (o usuário já foi avisado).
+enum AddEventResult { success, savedWithoutReminder, emptyName, pastDate, error }
 
 class EventController {
   final EventsDB eventsDB;
-  final NotificationsApiService _notificationsApiService =
-      NotificationsApiService();
 
   EventController({required this.eventsDB});
 
@@ -23,24 +22,23 @@ class EventController {
       return AddEventResult.pastDate;
     }
 
-    final doc = await eventsDB.addEvent(
-      uid: uid,
+    final String eventId;
+    try {
+      final doc = await eventsDB.addEvent(
+        uid: uid,
+        eventName: eventName,
+        eventDate: eventDate,
+      );
+      eventId = doc.id;
+    } catch (e) {
+      return AddEventResult.error;
+    }
+
+    return _scheduleReminder(
+      eventId: eventId,
       eventName: eventName,
       eventDate: eventDate,
     );
-
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool('notif_pref_events') ?? true) {
-      await _notificationsApiService.scheduleReminder(
-        type: 'event',
-        entityId: doc.id,
-        title: 'Evento',
-        body: eventName,
-        remindAt: eventDate,
-      );
-    }
-
-    return AddEventResult.success;
   }
 
   Future<AddEventResult> updateEvent({
@@ -55,27 +53,47 @@ class EventController {
       return AddEventResult.pastDate;
     }
 
-    await eventsDB.updateEvent(eventId: eventId, eventName: eventName, eventDate: eventDate);
-
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool('notif_pref_events') ?? true) {
-      await _notificationsApiService.scheduleReminder(
-        type: 'event',
-        entityId: eventId,
-        title: 'Evento',
-        body: eventName,
-        remindAt: eventDate,
-      );
+    try {
+      await eventsDB.updateEvent(eventId: eventId, eventName: eventName, eventDate: eventDate);
+    } catch (e) {
+      return AddEventResult.error;
     }
 
-    return AddEventResult.success;
+    return _scheduleReminder(
+      eventId: eventId,
+      eventName: eventName,
+      eventDate: eventDate,
+    );
   }
 
-  Future<void> deleteEvent(String eventId) async {
+  /// Retorna `false` se o evento foi excluído mas o lembrete não pôde ser cancelado.
+  Future<bool> deleteEvent(String eventId, {required String eventName}) async {
     await eventsDB.deleteEvent(eventId);
-    await _notificationsApiService.cancelReminder(
+    return ReminderFeedback.cancel(
       type: 'event',
       entityId: eventId,
+      label: eventName,
     );
+  }
+
+  Future<AddEventResult> _scheduleReminder({
+    required String eventId,
+    required String eventName,
+    required DateTime eventDate,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!(prefs.getBool('notif_pref_events') ?? true)) {
+      return AddEventResult.success;
+    }
+
+    final scheduled = await ReminderFeedback.schedule(
+      type: 'event',
+      entityId: eventId,
+      title: 'Evento',
+      body: eventName,
+      remindAt: eventDate,
+      label: eventName,
+    );
+    return scheduled ? AddEventResult.success : AddEventResult.savedWithoutReminder;
   }
 }

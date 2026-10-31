@@ -1,7 +1,9 @@
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
+import 'package:estudazz_main_code/utils/navigation/closeRoute.dart';
 import 'package:flutter/material.dart';
 
 class CreateStudyRoomDialog extends StatefulWidget {
-  final Function(String name, String? description) onCreate;
+  final Future<void> Function(String name, String? description) onCreate;
 
   const CreateStudyRoomDialog({super.key, required this.onCreate});
 
@@ -52,16 +54,17 @@ class _CreateStudyRoomDialogState extends State<CreateStudyRoomDialog> {
           onPressed: () => Navigator.pop(context),
           child: const Text('Cancelar'),
         ),
-        ElevatedButton(
-          onPressed: () {
+        LoadingButton(
+          onPressed: () async {
             if (_formKey.currentState!.validate()) {
-              widget.onCreate(
+              final route = ModalRoute.of(context);
+              await widget.onCreate(
                 _nameController.text,
                 _descriptionController.text.isNotEmpty
                     ? _descriptionController.text
                     : null,
               );
-              Navigator.pop(context);
+              if (mounted) closeRoute(context, route);
             }
           },
           child: const Text('Criar'),

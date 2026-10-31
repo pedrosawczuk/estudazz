@@ -1,4 +1,5 @@
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
 import 'package:estudazz_main_code/routes/appRoutes.dart';
@@ -20,7 +21,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
 
-  void recoverPassword() async {
+  Future<void> recoverPassword() async {
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState!.validate()) {
       final email = _emailController.text.trim().toLowerCase();
 
@@ -46,6 +48,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             message: 'Email inválido',
             backgroundColor: ConstColors.redColor,
           );
+        } else if (e.code == 'network-request-failed') {
+          CustomSnackBar.show(
+            title: 'Sem Conexão',
+            message: 'Verifique sua conexão com a internet.',
+            backgroundColor: ConstColors.redColor,
+          );
         } else {
           CustomSnackBar.show(
             title: 'Erro Inesperado',
@@ -53,6 +61,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             backgroundColor: ConstColors.redColor,
           );
         }
+      } catch (e) {
+        CustomSnackBar.show(
+          title: 'Erro Inesperado',
+          message: 'Não foi possível enviar o email. Tente novamente.',
+          backgroundColor: ConstColors.redColor,
+        );
       }
     }
   }
@@ -107,7 +121,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ),
                 ),
                 ConstSizedBox.h10,
-                ElevatedButton(
+                LoadingButton(
                   onPressed: recoverPassword,
                   style: ElevatedButton.styleFrom(
                     fixedSize: const Size(200, 44),

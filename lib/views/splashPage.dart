@@ -1,9 +1,10 @@
 import 'package:estudazz_main_code/routes/appRoutes.dart';
+import 'package:estudazz_main_code/services/ia/iaChatStorageService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:onesignal_flutter/onesignal_flutter.dart';
+import 'package:estudazz_main_code/services/notificationsApi/oneSignalSession.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -27,7 +28,10 @@ class _SplashPageState extends State<SplashPage> {
     if (lastActivity != null) {
       final thirtyDaysInMillis = 30 * 24 * 60 * 60 * 1000;
       if (now - lastActivity > thirtyDaysInMillis) {
+        final currentUid = FirebaseAuth.instance.currentUser?.uid;
+        await IaChatStorageService.clearMessages(uid: currentUid);
         await FirebaseAuth.instance.signOut();
+        await OneSignalSession.logout();
         await prefs.clear();
         Get.offAllNamed(AppRoutes.signInPage);
         return;
@@ -36,9 +40,9 @@ class _SplashPageState extends State<SplashPage> {
 
     await prefs.setInt('lastActivity', now);
 
-    FirebaseAuth.instance.authStateChanges().first.then((user) {
+    FirebaseAuth.instance.authStateChanges().first.then((user) async {
       if (user != null) {
-        OneSignal.login(user.uid);
+        await OneSignalSession.login(user.uid);
         Get.offAllNamed(AppRoutes.homePage);
       } else {
         Get.offAllNamed(AppRoutes.signInPage);

@@ -1,4 +1,5 @@
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
 import 'package:estudazz_main_code/controllers/tasks/taskController.dart';
@@ -74,7 +75,7 @@ class AddTaskDialog {
                       Navigator.of(context).pop();
                   },
                 ),
-                ElevatedButton(
+                LoadingButton(
                   child: const Text("Salvar"),
                   onPressed: () async {
                     String? uid = await getUserUid();
@@ -101,15 +102,19 @@ class AddTaskDialog {
                       dueDate: tempSelectedDate!,
                     );
 
-                    if (result == AddTaskResult.success) {
+                    if (result == AddTaskResult.success ||
+                        result == AddTaskResult.savedWithoutReminder) {
                       _taskNameController.clear();
                       _selectedDate = null;
                       Navigator.of(context).pop();
-                      CustomSnackBar.show(
-                        title: 'Tarefa adicionada',
-                        message: 'A tarefa foi adicionada com sucesso.',
-                        backgroundColor: ConstColors.greenColor,
-                      );
+                      // Sem lembrete o aviso com "Tentar de novo" já foi exibido
+                      if (result == AddTaskResult.success) {
+                        CustomSnackBar.show(
+                          title: 'Tarefa adicionada',
+                          message: 'A tarefa foi adicionada com sucesso.',
+                          backgroundColor: ConstColors.greenColor,
+                        );
+                      }
                     } else if (result == AddTaskResult.emptyName) {
                       CustomSnackBar.show(
                         title: 'Erro!',

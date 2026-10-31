@@ -1,15 +1,13 @@
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
 import 'package:estudazz_main_code/controllers/tasks/taskController.dart';
 import 'package:estudazz_main_code/services/db/tasks/tasksDB.dart';
-import 'package:estudazz_main_code/services/notificationsApi/notificationsApiService.dart';
 import 'package:flutter/material.dart';
 
 class MarkTaskCompletedDialog {
   final TaskController _taskController = TaskController(tasksDB: TasksDB());
-  final NotificationsApiService _notificationsApiService =
-      NotificationsApiService();
 
   Future<void> showMarkTaskCompletedDialog({
     required BuildContext context,
@@ -58,33 +56,36 @@ class MarkTaskCompletedDialog {
                   style: TextStyle(color: ConstColors.greyColor),
                 ),
               ),
-              ElevatedButton.icon(
+              LoadingButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: ConstColors.orangeColor,
                   foregroundColor: ConstColors.whiteColor,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                 ),
                 onPressed: () async {
                   try {
-                    await _taskController.tasksDB.updateTask(
+                    await _taskController.setTaskCompletion(
                       taskId: taskId,
-                      data: {
-                        'task_completed': false,
-                        'task_completed_at': null,
-                      },
+                      completed: false,
                     );
-                    await _notificationsApiService.cancelReminder(
-                      type: 'task',
-                      entityId: taskId,
+                    final reminderOk = await _taskController.rescheduleReminder(
+                      taskId: taskId,
+                      taskName: taskName,
                     );
-                    CustomSnackBar.show(
-                      title: 'Tarefa Desmarcada',
-                      message: 'A tarefa "$taskName" foi desmarcada com sucesso.',
-                      backgroundColor: ConstColors.greenColor,
-                    );
+                    if (reminderOk) {
+                      CustomSnackBar.show(
+                        title: 'Tarefa Desmarcada',
+                        message:
+                            'A tarefa "$taskName" foi desmarcada com sucesso.',
+                        backgroundColor: ConstColors.greenColor,
+                      );
+                    }
                   } catch (e) {
                     CustomSnackBar.show(
                       title: 'Erro!',
@@ -95,7 +96,7 @@ class MarkTaskCompletedDialog {
                   Navigator.of(context).pop();
                 },
                 icon: const Icon(Icons.undo),
-                label: const Text('Desmarcar'),
+                child: const Text('Desmarcar'),
               ),
             ],
           );
@@ -136,25 +137,24 @@ class MarkTaskCompletedDialog {
                   ),
                 ),
                 ConstSizedBox.h24,
-                ElevatedButton.icon(
+                LoadingButton(
                   onPressed: () async {
                     try {
-                      await _taskController.tasksDB.updateTask(
+                      await _taskController.setTaskCompletion(
                         taskId: taskId,
-                        data: {
-                          'task_completed': true,
-                          'task_completed_at': DateTime.now().toIso8601String(),
-                        },
+                        completed: true,
                       );
-                      await _notificationsApiService.cancelReminder(
-                        type: 'task',
-                        entityId: taskId,
+                      final reminderOk = await _taskController.cancelReminder(
+                        taskId: taskId,
+                        taskName: taskName,
                       );
-                      CustomSnackBar.show(
-                        title: 'Parabéns!',
-                        message: 'Tarefa marcada como concluída.',
-                        backgroundColor: ConstColors.greenColor,
-                      );
+                      if (reminderOk) {
+                        CustomSnackBar.show(
+                          title: 'Parabéns!',
+                          message: 'Tarefa marcada como concluída.',
+                          backgroundColor: ConstColors.greenColor,
+                        );
+                      }
                     } catch (e) {
                       CustomSnackBar.show(
                         title: 'Erro!',
@@ -165,7 +165,7 @@ class MarkTaskCompletedDialog {
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.check_circle_outline, size: 24),
-                  label: const Text(
+                  child: const Text(
                     'Marcar como Concluída',
                     style: TextStyle(fontSize: 16),
                   ),
@@ -179,19 +179,22 @@ class MarkTaskCompletedDialog {
                   ),
                 ),
                 ConstSizedBox.h16,
-                OutlinedButton.icon(
+                LoadingButton(
+                  variant: LoadingButtonVariant.outlined,
                   onPressed: () async {
                     try {
                       await _taskController.tasksDB.deleteTask(taskId);
-                      await _notificationsApiService.cancelReminder(
-                        type: 'task',
-                        entityId: taskId,
+                      final reminderOk = await _taskController.cancelReminder(
+                        taskId: taskId,
+                        taskName: taskName,
                       );
-                      CustomSnackBar.show(
-                        title: 'Tarefa Excluída',
-                        message: 'A tarefa "$taskName" foi excluída.',
-                        backgroundColor: ConstColors.greenColor,
-                      );
+                      if (reminderOk) {
+                        CustomSnackBar.show(
+                          title: 'Tarefa Excluída',
+                          message: 'A tarefa "$taskName" foi excluída.',
+                          backgroundColor: ConstColors.greenColor,
+                        );
+                      }
                     } catch (e) {
                       CustomSnackBar.show(
                         title: 'Erro!',
@@ -202,7 +205,7 @@ class MarkTaskCompletedDialog {
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.delete_outline, size: 24),
-                  label: const Text(
+                  child: const Text(
                     'Excluir Tarefa',
                     style: TextStyle(fontSize: 16),
                   ),

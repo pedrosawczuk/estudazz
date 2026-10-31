@@ -1,17 +1,22 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:estudazz_main_code/services/db/tasks/tasksDB.dart';
-import 'package:estudazz_main_code/services/notificationsApi/notificationsApiService.dart';
+import 'package:estudazz_main_code/services/notificationsApi/reminderFeedback.dart';
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
-enum AddTaskResult { success, emptyName, pastDueDate, error }
+/// `savedWithoutReminder`: a tarefa foi salva, mas o lembrete falhou (o usuário já foi avisado).
+enum AddTaskResult {
+  success,
+  savedWithoutReminder,
+  emptyName,
+  pastDueDate,
+  error,
+}
 
 class TaskController {
   final TasksDB tasksDB;
-  final NotificationsApiService _notificationsApiService =
-      NotificationsApiService();
 
   TaskController({required this.tasksDB});
 
@@ -35,36 +40,74 @@ class TaskController {
 
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool('notif_pref_tasks') ?? true) {
-        await _notificationsApiService.scheduleReminder(
+        final scheduled = await ReminderFeedback.schedule(
           type: 'task',
           entityId: doc.id,
           title: 'Tarefa pendente',
           body: taskName,
           remindAt: dueDate,
+          label: taskName,
         );
+        if (!scheduled) return AddTaskResult.savedWithoutReminder;
       }
 
       return AddTaskResult.success;
     } catch (e) {
       CustomSnackBar.show(
         title: 'Servidor Ocupado',
-        message: 'A solicitação demorou muito. Verifique sua rede e tente novamente.',
+        message:
+            'A solicitação demorou muito. Verifique sua rede e tente novamente.',
         backgroundColor: ConstColors.redColor,
       );
       return AddTaskResult.error;
     }
   }
 
-  Future<void> updateTask({
+  Future<void> setTaskCompletion({
     required String taskId,
-    required Map<String, dynamic> data,
+    required bool completed,
   }) {
-    return tasksDB.updateTask(taskId: taskId, data: data);
+    return tasksDB.setTaskCompletion(taskId: taskId, completed: completed);
+  }
+
+  /// Retorna `false` se o lembrete não pôde ser cancelado (o usuário já foi avisado).
+  Future<bool> cancelReminder({
+    required String taskId,
+    required String taskName,
+  }) {
+    return ReminderFeedback.cancel(
+      type: 'task',
+      entityId: taskId,
+      label: taskName,
+    );
+  }
+
+  /// Reagenda o lembrete de uma tarefa reaberta, se o prazo ainda não passou.
+  /// Retorna `false` se o agendamento falhou (o usuário já foi avisado).
+  Future<bool> rescheduleReminder({
+    required String taskId,
+    required String taskName,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!(prefs.getBool('notif_pref_tasks') ?? true)) return true;
+
+    final taskSnapshot = await tasksDB.getTask(taskId);
+    final data = taskSnapshot.data() as Map<String, dynamic>?;
+    final dueDate = DateTime.tryParse(data?['due_date'] ?? '');
+    if (dueDate == null || dueDate.isBefore(DateTime.now())) return true;
+
+    return ReminderFeedback.schedule(
+      type: 'task',
+      entityId: taskId,
+      title: 'Tarefa pendente',
+      body: taskName,
+      remindAt: dueDate,
+      label: taskName,
+    );
   }
 
   Future<bool> isTaskCompleted(String taskId) async {
-    DocumentSnapshot taskSnapshot =
-        await tasksDB.tasksCollection.doc(taskId).get();
+    DocumentSnapshot taskSnapshot = await tasksDB.getTask(taskId);
     return taskSnapshot['task_completed'] ?? false;
   }
 }

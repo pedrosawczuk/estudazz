@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:estudazz_main_code/components/custom/customAppBar.dart';
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/controllers/studyRoom/studyRoomController.dart';
 import 'package:estudazz_main_code/models/studyRoom/studyRoomModel.dart';
@@ -27,17 +28,19 @@ class StudyRoomDetailsPage extends StatefulWidget {
 
 class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
     with TickerProviderStateMixin {
+  late TabController _tabController;
+  final StudyRoomDB _studyRoomDB = StudyRoomDB();
+  StreamSubscription? _roomSubscription;
   late StudyRoomModel _currentRoom;
   List<UserModel> _members = [];
   bool _isLoading = true;
-  late TabController _tabController;
-  StreamSubscription<DocumentSnapshot>? _roomSubscription;
-  bool get _canChat => _currentRoom.members.length >= 2;
+  late bool _canChat;
 
   @override
   void initState() {
     super.initState();
     _currentRoom = widget.room;
+    _canChat = _currentRoom.members.length > 1;
     _tabController = TabController(length: _canChat ? 2 : 1, vsync: this);
     _fetchMembersData();
     _listenToRoomChanges();
@@ -45,24 +48,24 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
 
   @override
   void dispose() {
-    _roomSubscription?.cancel();
     _tabController.dispose();
+    _roomSubscription?.cancel();
     super.dispose();
   }
 
   void _listenToRoomChanges() {
-    _roomSubscription = StudyRoomDB().getStudyRoomStream(widget.room.id).listen(
+    _roomSubscription = _studyRoomDB.getStudyRoomStream(_currentRoom.id).listen(
       (snapshot) {
         if (snapshot.exists && mounted) {
-          final newRoom = StudyRoomModel.fromFirestore(snapshot);
-          final canChatNow = newRoom.members.length >= 2;
-          final canChatBefore = _canChat;
+          final updatedRoom = StudyRoomModel.fromFirestore(snapshot);
+          final canChatNow = updatedRoom.members.length > 1;
 
           setState(() {
-            _currentRoom = newRoom;
+            _currentRoom = updatedRoom;
           });
 
-          if (canChatNow != canChatBefore) {
+          if (canChatNow != _canChat) {
+            _canChat = canChatNow;
             final newIndex = _tabController.index;
             _tabController.dispose();
             _tabController = TabController(
@@ -230,13 +233,15 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
                               ),
                       ),
                       title: Text(member.displayName),
-                      subtitle: Text(member.email),
+                      subtitle: Text(
+                        member.username.isNotEmpty ? '@${member.username}' : '',
+                      ),
                     );
                   },
                 ),
           if (!isOwner) ...[
             const SizedBox(height: 32),
-            ElevatedButton(
+            LoadingButton(
               onPressed: () => controller.leaveRoom(_currentRoom.id),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,

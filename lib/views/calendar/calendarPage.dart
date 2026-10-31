@@ -7,6 +7,7 @@ import 'package:estudazz_main_code/constants/constSizedBox.dart';
 import 'package:estudazz_main_code/models/calendar/eventModel.dart';
 import 'package:estudazz_main_code/services/db/calendar/eventsDB.dart';
 import 'package:estudazz_main_code/utils/user/getUserData.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -45,7 +46,9 @@ class _CalendarPageState extends State<CalendarPage> {
               decoration: BoxDecoration(
                 color: ConstColors.grey900Color,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: ConstColors.orangeColor.withValues(alpha: 0.5)),
+                border: Border.all(
+                  color: ConstColors.orangeColor.withValues(alpha: 0.5),
+                ),
               ),
               child: const Row(
                 children: [
@@ -54,7 +57,10 @@ class _CalendarPageState extends State<CalendarPage> {
                   Expanded(
                     child: Text(
                       "Dica: Pressione e segure sobre um dia no calendário abaixo para criar um novo evento.",
-                      style: TextStyle(color: ConstColors.whiteColor, fontSize: 13),
+                      style: TextStyle(
+                        color: ConstColors.whiteColor,
+                        fontSize: 13,
+                      ),
                     ),
                   ),
                 ],
@@ -79,7 +85,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     eventId: uid!,
                     eventName: "",
                     eventDate: selectedDay,
-                    getUserUid: GetUserData.getUserUid, 
+                    getUserUid: GetUserData.getUserUid,
                   );
                 }
               },
@@ -120,7 +126,9 @@ class _CalendarPageState extends State<CalendarPage> {
                         return const Center(child: CircularProgressIndicator());
                       }
                       if (eventSnapshot.hasError) {
-                        print('Erro: ${eventSnapshot.error}');
+                        if (kDebugMode) {
+                          debugPrint('Erro: ${eventSnapshot.error}');
+                        }
                         return const Center(
                           child: Text(
                             'Erro ao carregar eventos. \nContate o suporte.',

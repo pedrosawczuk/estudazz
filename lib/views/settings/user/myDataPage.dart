@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:estudazz_main_code/components/cards/user/userDataCard.dart';
 import 'package:estudazz_main_code/components/custom/customAppBar.dart';
+import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/routes/appRoutes.dart';
 import 'package:estudazz_main_code/models/user/userModel.dart';
@@ -19,11 +22,47 @@ class MyDataPage extends StatefulWidget {
 class _MyDataPageState extends State<MyDataPage> {
   final UserController _userController = UserController();
   late Stream<UserModel?> _userDataStream;
+  bool _isUploadingPhoto = false;
 
   @override
   void initState() {
     super.initState();
     _userDataStream = _userController.streamUserData();
+  }
+
+  Future<void> _changeProfilePicture(ImageSource source) async {
+    Get.back();
+
+    final File? imageFile;
+    try {
+      imageFile = await _userController.pickProfilePicture(source);
+    } catch (e) {
+      CustomSnackBar.show(
+        title: 'Erro!',
+        message: 'Não foi possível acessar a câmera ou a galeria.',
+        backgroundColor: ConstColors.redColor,
+      );
+      return;
+    }
+    if (imageFile == null) return;
+
+    setState(() => _isUploadingPhoto = true);
+    try {
+      await _userController.uploadProfilePicture(imageFile);
+      CustomSnackBar.show(
+        title: 'Foto atualizada',
+        message: 'Sua foto de perfil foi alterada.',
+        backgroundColor: ConstColors.greenColor,
+      );
+    } catch (e) {
+      CustomSnackBar.show(
+        title: 'Erro!',
+        message: 'Não foi possível enviar a foto. Verifique sua conexão.',
+        backgroundColor: ConstColors.redColor,
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
   }
 
   void _showImageSourceSelection() {
@@ -39,18 +78,12 @@ class _MyDataPageState extends State<MyDataPage> {
             ListTile(
               leading: const Icon(Icons.camera_alt),
               title: const Text('Câmera'),
-              onTap: () async {
-                Get.back();
-                await _userController.updateProfilePicture(ImageSource.camera);
-              },
+              onTap: () => _changeProfilePicture(ImageSource.camera),
             ),
             ListTile(
               leading: const Icon(Icons.photo_library),
               title: const Text('Galeria'),
-              onTap: () async {
-                Get.back();
-                await _userController.updateProfilePicture(ImageSource.gallery);
-              },
+              onTap: () => _changeProfilePicture(ImageSource.gallery),
             ),
           ],
         ),
@@ -84,12 +117,25 @@ class _MyDataPageState extends State<MyDataPage> {
                 ConstSizedBox.h20,
                 Center(
                   child: GestureDetector(
-                    onTap: _showImageSourceSelection,
-                    child: CircleAvatar(
-                      radius: 60,
-                      backgroundImage: photoURL.isNotEmpty
-                          ? NetworkImage(photoURL)
-                          : const AssetImage('assets/images/no-profile-photo.png') as ImageProvider,
+                    onTap: _isUploadingPhoto ? null : _showImageSourceSelection,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircleAvatar(
+                          radius: 60,
+                          backgroundImage: photoURL.isNotEmpty
+                              ? NetworkImage(photoURL)
+                              : const AssetImage('assets/images/no-profile-photo.png') as ImageProvider,
+                        ),
+                        if (_isUploadingPhoto)
+                          const CircleAvatar(
+                            radius: 60,
+                            backgroundColor: Colors.black54,
+                            child: CircularProgressIndicator(
+                              color: ConstColors.whiteColor,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),

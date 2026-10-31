@@ -1,4 +1,5 @@
 import 'package:estudazz_main_code/components/custom/customSnackBar.dart';
+import 'package:estudazz_main_code/components/custom/loadingButton.dart';
 import 'package:estudazz_main_code/constants/color/constColors.dart';
 import 'package:estudazz_main_code/constants/constSizedBox.dart';
 import 'package:estudazz_main_code/controllers/calendar/eventController.dart';
@@ -74,15 +75,32 @@ class DetailEventDialog {
               },
               icon: const Icon(Icons.edit, color: ConstColors.whiteColor),
             ),
-            IconButton(
+            LoadingButton.icon(
               onPressed: () async {
-                await _eventController.deleteEvent(eventId);
+                final bool reminderCanceled;
+                try {
+                  reminderCanceled = await _eventController.deleteEvent(
+                    eventId,
+                    eventName: eventName,
+                  );
+                } catch (e) {
+                  CustomSnackBar.show(
+                    title: 'Erro!',
+                    message: 'Não foi possível excluir o evento. Verifique sua conexão.',
+                    backgroundColor: ConstColors.redColor,
+                  );
+                  return;
+                }
+                if (!context.mounted) return;
                 Navigator.of(context).pop();
-                CustomSnackBar.show(
-                  title: 'Sucesso!',
-                  message: 'Evento "$eventName" excluído com sucesso!',
-                  backgroundColor: ConstColors.greenColor,
-                );
+                // Se o lembrete não foi cancelado o aviso com "Tentar de novo" já foi exibido
+                if (reminderCanceled) {
+                  CustomSnackBar.show(
+                    title: 'Sucesso!',
+                    message: 'Evento "$eventName" excluído com sucesso!',
+                    backgroundColor: ConstColors.greenColor,
+                  );
+                }
               },
               icon: const Icon(Icons.delete_forever, color: ConstColors.whiteColor),
             ),

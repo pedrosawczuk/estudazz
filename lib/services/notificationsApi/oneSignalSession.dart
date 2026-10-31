@@ -1,10 +1,11 @@
+import 'package:estudazz_main_code/services/notificationsApi/notificationsApiService.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:onesignal_flutter/onesignal_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// Vincula/desvincula o aparelho ao usuário no OneSignal e mantém a tag
-/// `updates` alinhada à preferência "Novidades do app" (usada pelo broadcast).
+/// Vincula/desvincula o aparelho ao usuário no OneSignal usando um identificador
+/// opaco emitido pelo backend autenticado, e mantém a tag `updates` alinhada.
 class OneSignalSession {
   static const String updatesPrefKey = 'notif_pref_updates';
   static const String _updatesTagKey = 'updates';
@@ -15,7 +16,9 @@ class OneSignalSession {
       if (currentUid == null || currentUid != uid) {
         return;
       }
-      await OneSignal.login(uid);
+      final externalId =
+          await NotificationsApiService().fetchOneSignalExternalId();
+      await OneSignal.login(externalId);
       await syncUpdatesTag();
     } catch (e) {
       if (kDebugMode) {
@@ -37,6 +40,9 @@ class OneSignalSession {
   static Future<void> syncUpdatesTag() async {
     final prefs = await SharedPreferences.getInstance();
     final enabled = prefs.getBool(updatesPrefKey) ?? true;
-    await OneSignal.User.addTagWithKey(_updatesTagKey, enabled ? 'true' : 'false');
+    await OneSignal.User.addTagWithKey(
+      _updatesTagKey,
+      enabled ? 'true' : 'false',
+    );
   }
 }

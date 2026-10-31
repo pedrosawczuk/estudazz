@@ -110,6 +110,7 @@ class _EditDataPageState extends State<EditDataPage> {
 
         batch.update(userRef, {
           ...updatedUser.toPublicMap(),
+          'email': FieldValue.delete(),
           'birth_date': FieldValue.delete(),
           'institution': FieldValue.delete(),
           'course': FieldValue.delete(),

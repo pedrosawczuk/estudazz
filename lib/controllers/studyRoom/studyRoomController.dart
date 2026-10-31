@@ -97,9 +97,9 @@ class StudyRoomController extends GetxController {
     }
 
     try {
-      final roomSnapshot = await _studyRoomDB.findRoomByCode(roomCode);
+      final roomDoc = await _studyRoomDB.findRoomDocumentByCode(roomCode);
 
-      if (roomSnapshot.docs.isEmpty) {
+      if (roomDoc == null || !roomDoc.exists) {
         CustomSnackBar.show(
           title: 'Erro',
           message: 'Nenhuma sala encontrada com este código.',
@@ -108,7 +108,6 @@ class StudyRoomController extends GetxController {
         return;
       }
 
-      final roomDoc = roomSnapshot.docs.first;
       final room = StudyRoomModel.fromFirestore(roomDoc);
 
       if (room.members.contains(user.uid)) {

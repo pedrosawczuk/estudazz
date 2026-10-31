@@ -58,6 +58,17 @@ class NotificationsApiService {
     );
   }
 
+  Future<String> fetchOneSignalExternalId() async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      '/notifications/session',
+    );
+    final externalId = response.data?['externalId'];
+    if (externalId is String && externalId.isNotEmpty) {
+      return externalId;
+    }
+    throw NotificationsApiException('Identificador de sessão inválido.');
+  }
+
   Future<void> scheduleReminder({
     required String type,
     required String entityId,
@@ -86,8 +97,13 @@ class NotificationsApiService {
     final encodedType = Uri.encodeComponent(type);
     final encodedEntityId = Uri.encodeComponent(entityId);
     return _send(
-      () => _dio.delete('/notifications/reminders/$encodedType/$encodedEntityId'),
+      () =>
+          _dio.delete('/notifications/reminders/$encodedType/$encodedEntityId'),
     );
+  }
+
+  Future<void> deleteAllReminders() {
+    return _send(() => _dio.delete('/notifications/reminders'));
   }
 
   Future<void> pushToStudyRoom({

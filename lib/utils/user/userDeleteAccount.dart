@@ -19,6 +19,10 @@ Future<void> _deleteUserOwnedData(String uid) async {
   final notificationsApi = NotificationsApiService();
   final studyRoomDB = StudyRoomDB();
 
+  try {
+    await notificationsApi.deleteAllReminders();
+  } catch (_) {}
+
   final tasksSnapshot =
       await firestore.collection('tasks').where('uid', isEqualTo: uid).get();
   for (final doc in tasksSnapshot.docs) {

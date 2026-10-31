@@ -44,6 +44,7 @@ void main() {
     final publicMap = user.toPublicMap();
     final privateMap = user.toPrivateMap();
 
+    expect(publicMap.containsKey('email'), isFalse);
     expect(publicMap.containsKey('birth_date'), isFalse);
     expect(publicMap.containsKey('institution'), isFalse);
     expect(publicMap.containsKey('course'), isFalse);
@@ -51,6 +52,7 @@ void main() {
     expect(publicMap['display_name'], 'Maria');
     expect(publicMap['username'], 'maria_s');
 
+    expect(privateMap['email'], 'maria@example.com');
     expect(privateMap['birth_date'], '01/01/2002');
     expect(privateMap['institution'], 'USP');
     expect(privateMap['course'], 'Engenharia');
@@ -61,6 +63,7 @@ void main() {
       'uid-123',
       privateMap: privateMap,
     );
+    expect(reconstructed.email, 'maria@example.com');
     expect(reconstructed.birthDate, '01/01/2002');
     expect(reconstructed.institution, 'USP');
   });

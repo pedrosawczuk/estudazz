@@ -24,13 +24,7 @@ class StudyRoomDB {
     for (int attempt = 0; attempt < 5; attempt++) {
       final candidate = _generateRoomCode();
       final codeDoc = await roomCodesCollection.doc(candidate).get();
-      if (codeDoc.exists) continue;
-
-      final existingRoom = await studyRoomsCollection
-          .where('roomCode', isEqualTo: candidate)
-          .limit(1)
-          .get();
-      if (existingRoom.docs.isEmpty) {
+      if (!codeDoc.exists) {
         return candidate;
       }
     }
@@ -58,7 +52,10 @@ class StudyRoomDB {
       'creatorUid': creatorUid,
       'members': [creatorUid],
       'createdAt': now,
+    });
+    batch.set(roomRef.collection('private').doc('config'), {
       'roomCode': roomCode,
+      'creatorUid': creatorUid,
     });
     batch.set(roomCodesCollection.doc(roomCode), {
       'roomId': roomRef.id,
@@ -70,12 +67,43 @@ class StudyRoomDB {
     return roomRef;
   }
 
-  Future<QuerySnapshot> findRoomByCode(String roomCode) {
+  Future<DocumentSnapshot?> findRoomDocumentByCode(String roomCode) async {
     final normalizedCode = roomCode.trim().toUpperCase();
-    return studyRoomsCollection
-        .where('roomCode', isEqualTo: normalizedCode)
-        .limit(1)
-        .get();
+    if (normalizedCode.isEmpty) return null;
+
+    final codeDoc = await roomCodesCollection.doc(normalizedCode).get();
+    if (!codeDoc.exists) return null;
+
+    final data = codeDoc.data() as Map<String, dynamic>?;
+    final roomId = data?['roomId'] as String?;
+    if (roomId == null || roomId.isEmpty) return null;
+
+    final roomDoc = await studyRoomsCollection.doc(roomId).get();
+    return roomDoc.exists ? roomDoc : null;
+  }
+
+  Future<String> getRoomCodeForOwner(
+    String roomId, {
+    String fallback = '',
+  }) async {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    if (currentUid == null) return fallback;
+
+    try {
+      final configDoc = await studyRoomsCollection
+          .doc(roomId)
+          .collection('private')
+          .doc('config')
+          .get();
+      if (configDoc.exists) {
+        final code = configDoc.data()?['roomCode'];
+        if (code is String && code.isNotEmpty) {
+          return code;
+        }
+      }
+    } catch (_) {}
+
+    return fallback;
   }
 
   Future<void> addUserToRoom(String roomId, String userId) {
@@ -140,7 +168,10 @@ class StudyRoomDB {
       throw StateError('Apenas o criador da sala pode excluí-la.');
     }
 
-    final roomCode = roomData?['roomCode'] as String?;
+    final roomCode = await getRoomCodeForOwner(
+      roomId,
+      fallback: (roomData?['roomCode'] as String?) ?? '',
+    );
 
     while (true) {
       final messagesSnapshot =
@@ -155,9 +186,10 @@ class StudyRoomDB {
     }
 
     final batch = FirebaseFirestore.instance.batch();
-    if (roomCode != null && roomCode.isNotEmpty) {
+    if (roomCode.isNotEmpty) {
       batch.delete(roomCodesCollection.doc(roomCode));
     }
+    batch.delete(roomRef.collection('private').doc('config'));
     batch.delete(roomRef);
     await batch.commit();
   }

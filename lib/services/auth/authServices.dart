@@ -15,15 +15,24 @@ class AuthServices {
       final user = userCredential.user!;
       await OneSignalSession.login(user.uid);
 
-      await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'uid': userCredential.user!.uid,
-        'email': email,
+      final userRef = _firestore.collection('users').doc(user.uid);
+      final batch = _firestore.batch();
+      batch.set(userRef, {
+        'uid': user.uid,
         'profile_completed': false,
         'created_at': FieldValue.serverTimestamp(),
       });
+      batch.set(
+        userRef.collection('private').doc('profile'),
+        {
+          'uid': user.uid,
+          'email': user.email ?? email,
+        },
+        SetOptions(merge: true),
+      );
+      await batch.commit();
 
       await SaveUserLocal.saveUser(user);
-
     } on FirebaseAuthException catch (e) {
       throw e;
     } on FirebaseException catch (e) {
@@ -33,7 +42,7 @@ class AuthServices {
     }
   }
 
-    Future<void> loginUser(String email, String password) async {
+  Future<void> loginUser(String email, String password) async {
     try {
       await _firebaseAuth.signInWithEmailAndPassword(
         email: email,

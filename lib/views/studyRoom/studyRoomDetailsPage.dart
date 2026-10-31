@@ -32,6 +32,7 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
   final StudyRoomDB _studyRoomDB = StudyRoomDB();
   StreamSubscription? _roomSubscription;
   late StudyRoomModel _currentRoom;
+  String _ownerRoomCode = '';
   List<UserModel> _members = [];
   bool _isLoading = true;
   late bool _canChat;
@@ -40,10 +41,28 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
   void initState() {
     super.initState();
     _currentRoom = widget.room;
+    _ownerRoomCode = widget.room.roomCode;
     _canChat = _currentRoom.members.length > 1;
     _tabController = TabController(length: _canChat ? 2 : 1, vsync: this);
     _fetchMembersData();
+    _loadOwnerRoomCode();
     _listenToRoomChanges();
+  }
+
+  Future<void> _loadOwnerRoomCode() async {
+    final isOwner =
+        FirebaseAuth.instance.currentUser?.uid == _currentRoom.creatorUid;
+    if (!isOwner) return;
+
+    final code = await _studyRoomDB.getRoomCodeForOwner(
+      _currentRoom.id,
+      fallback: _currentRoom.roomCode,
+    );
+    if (mounted && code.isNotEmpty) {
+      setState(() {
+        _ownerRoomCode = code;
+      });
+    }
   }
 
   @override
@@ -164,7 +183,7 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  _currentRoom.roomCode,
+                  _ownerRoomCode,
                   style: const TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
@@ -175,7 +194,7 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
                   icon: const Icon(Icons.copy),
                   onPressed: () {
                     Clipboard.setData(
-                      ClipboardData(text: _currentRoom.roomCode),
+                      ClipboardData(text: _ownerRoomCode),
                     );
                     CustomSnackBar.show(
                       title: 'Copiado!',

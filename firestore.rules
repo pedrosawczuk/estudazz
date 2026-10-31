@@ -46,22 +46,33 @@ service cloud.firestore {
             .hasOnly(['event_name', 'event_date']);
     }
 
-    // Track 3 & 4: /users separa dados privados em /users/{uid}/private/profile
-    // e exige email == request.auth.token.email e photoURL do bucket do projeto
+    // Track 3 & 4: /users mantem apenas dados publicos (display_name, username, photoURL)
+    // enquanto email, birth_date e dados academicos ficam restritos a /users/{uid}/private/profile
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isOwner(userId)
         && request.resource.data.uid == userId
-        && request.resource.data.email == request.auth.token.email
+        && !('email' in request.resource.data)
+        && !('birth_date' in request.resource.data)
+        && !('institution' in request.resource.data)
+        && !('course' in request.resource.data)
+        && !('expected_graduation' in request.resource.data)
         && (!('photoURL' in request.resource.data) || isValidStoragePhotoUrl(request.resource.data.photoURL));
       allow update: if isOwner(userId)
         && (!('uid' in request.resource.data) || request.resource.data.uid == userId)
-        && (!('email' in request.resource.data) || request.resource.data.email == request.auth.token.email)
+        && !('email' in request.resource.data)
+        && !('birth_date' in request.resource.data)
+        && !('institution' in request.resource.data)
+        && !('course' in request.resource.data)
+        && !('expected_graduation' in request.resource.data)
         && (!('photoURL' in request.resource.data) || isValidStoragePhotoUrl(request.resource.data.photoURL));
       allow delete: if isOwner(userId);
 
       match /private/{docId} {
-        allow read, write: if isOwner(userId);
+        allow read, delete: if isOwner(userId);
+        allow create, update: if isOwner(userId)
+          && request.resource.data.uid == userId
+          && (!('email' in request.resource.data) || request.resource.data.email == request.auth.token.email);
       }
     }
 
@@ -74,11 +85,12 @@ service cloud.firestore {
         && request.resource.data.data.size() <= 5000;
     }
 
-    // Indice de unicidade de codigos de salas de estudo (sem listagem global)
+    // Indice de unicidade de codigos de salas de estudo (busca pontual por get, sem listagem global)
     match /study_room_codes/{roomCode} {
-      allow get: if isSignedIn();
+      allow get: if isSignedIn() && roomCode.matches('^[A-Z0-9]{3}-[A-Z0-9]{3}$');
       allow list: if false;
       allow create: if isSignedIn()
+        && roomCode.matches('^[A-Z0-9]{3}-[A-Z0-9]{3}$')
         && request.resource.data.creatorUid == request.auth.uid
         && request.resource.data.roomId is string;
       allow update: if false;
@@ -86,9 +98,10 @@ service cloud.firestore {
         && resource.data.creatorUid == request.auth.uid;
     }
 
-    // Track 5, 6, 7 & 8: Salas de estudo e subcolecao messages
+    // Track 5, 6, 7 & 8: Salas de estudo (listagem restrita a membros; roomCode privado do criador)
     match /study_rooms/{roomId} {
-      allow read: if isSignedIn();
+      allow get: if isSignedIn();
+      allow list: if isSignedIn() && (request.auth.uid in resource.data.members);
 
       allow create: if isSignedIn()
         && request.resource.data.creatorUid == request.auth.uid
@@ -96,13 +109,12 @@ service cloud.firestore {
         && request.resource.data.name is string
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 100
-        && request.resource.data.roomCode is string
-        && request.resource.data.roomCode.matches('^[A-Z0-9]{3}-[A-Z0-9]{3}$');
+        && !('roomCode' in request.resource.data);
 
       allow update: if isSignedIn()
         && request.resource.data.creatorUid == resource.data.creatorUid
-        && request.resource.data.roomCode == resource.data.roomCode
         && request.resource.data.createdAt == resource.data.createdAt
+        && !('roomCode' in request.resource.data)
         && (
           // Criador pode renomear a sala (mantendo membros inalterados)
           (
@@ -133,6 +145,15 @@ service cloud.firestore {
         );
 
       allow delete: if isSignedIn() && resource.data.creatorUid == request.auth.uid;
+
+      match /private/{docId} {
+        allow read, delete: if isSignedIn()
+          && resource.data.creatorUid == request.auth.uid;
+        allow create, update: if isSignedIn()
+          && request.resource.data.creatorUid == request.auth.uid
+          && request.resource.data.roomCode is string
+          && request.resource.data.roomCode.matches('^[A-Z0-9]{3}-[A-Z0-9]{3}$');
+      }
 
       match /messages/{messageId} {
         allow read: if isSignedIn()

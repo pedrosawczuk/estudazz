@@ -36,7 +36,7 @@ class UserModel {
       uid: uid,
       displayName: map['display_name'] ?? '',
       username: map['username'] ?? '',
-      email: map['email'] ?? '',
+      email: privateMap?['email'] ?? map['email'] ?? '',
       birthDate: privateMap?['birth_date'] ?? map['birth_date'] ?? '',
       institution: privateMap?['institution'] ?? map['institution'] ?? '',
       course: privateMap?['course'] ?? map['course'] ?? '',
@@ -55,7 +55,6 @@ class UserModel {
       'uid': uid,
       'display_name': displayName,
       'username': username,
-      'email': email,
       'profile_completed': profileCompleted,
       'photoURL': photoUrl,
       if (lastLogin != null) 'last_login': Timestamp.fromDate(lastLogin!),
@@ -65,6 +64,7 @@ class UserModel {
   Map<String, dynamic> toPrivateMap() {
     return {
       'uid': uid,
+      'email': email,
       'birth_date': birthDate,
       'institution': institution,
       'course': course,

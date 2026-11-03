@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:estudazz_main_code/services/auth/saveUserLocal.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -13,7 +15,7 @@ class AuthServices {
           .createUserWithEmailAndPassword(email: email, password: password);
 
       final user = userCredential.user!;
-      await OneSignalSession.login(user.uid);
+      unawaited(OneSignalSession.login(user.uid));
 
       final userRef = _firestore.collection('users').doc(user.uid);
       final batch = _firestore.batch();
@@ -22,14 +24,10 @@ class AuthServices {
         'profile_completed': false,
         'created_at': FieldValue.serverTimestamp(),
       });
-      batch.set(
-        userRef.collection('private').doc('profile'),
-        {
-          'uid': user.uid,
-          'email': user.email ?? email,
-        },
-        SetOptions(merge: true),
-      );
+      batch.set(userRef.collection('private').doc('profile'), {
+        'uid': user.uid,
+        'email': user.email ?? email,
+      }, SetOptions(merge: true));
       await batch.commit();
 
       await SaveUserLocal.saveUser(user);
@@ -51,7 +49,7 @@ class AuthServices {
 
       if (_firebaseAuth.currentUser != null) {
         final user = _firebaseAuth.currentUser!;
-        await OneSignalSession.login(user.uid);
+        unawaited(OneSignalSession.login(user.uid));
         await _firestore.collection('users').doc(user.uid).update({
           'last_login': FieldValue.serverTimestamp(),
         });

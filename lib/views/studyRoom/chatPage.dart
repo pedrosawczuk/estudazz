@@ -28,12 +28,28 @@ class _ChatPageState extends State<ChatPage> {
   final _textController = TextEditingController();
   final _studyRoomDB = StudyRoomDB();
   final _notificationsApiService = NotificationsApiService();
-  late final Map<String, UserModel> _membersMap;
+  late Map<String, UserModel> _membersMap;
+  late final Stream<QuerySnapshot> _messagesStream;
 
   @override
   void initState() {
     super.initState();
     _membersMap = {for (var member in widget.members) member.uid: member};
+    _messagesStream = _studyRoomDB.getChatMessagesStream(widget.room.id);
+  }
+
+  @override
+  void didUpdateWidget(covariant ChatPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.members != widget.members) {
+      _membersMap = {for (var member in widget.members) member.uid: member};
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   Future<void> _sendMessage() async {
@@ -73,7 +89,8 @@ class _ChatPageState extends State<ChatPage> {
         roomId: widget.room.id,
         recipientUids: recipientUids,
         title: widget.room.name,
-        body: '${_membersMap[currentUser?.uid]?.displayName ?? "Alguém"}: $text',
+        body:
+            '${_membersMap[currentUser?.uid]?.displayName ?? "Alguém"}: $text',
       );
     } on NotificationsApiException catch (e) {
       debugPrint('Push da sala de estudo não enviado: $e');
@@ -88,7 +105,7 @@ class _ChatPageState extends State<ChatPage> {
       children: [
         Expanded(
           child: StreamBuilder<QuerySnapshot>(
-            stream: _studyRoomDB.getChatMessagesStream(widget.room.id),
+            stream: _messagesStream,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -104,7 +121,9 @@ class _ChatPageState extends State<ChatPage> {
                 padding: const EdgeInsets.all(8.0),
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
-                  final message = ChatMessageModel.fromFirestore(messages[index]);
+                  final message = ChatMessageModel.fromFirestore(
+                    messages[index],
+                  );
                   final sender = _membersMap[message.senderUid];
 
                   if (sender == null) {
@@ -130,34 +149,37 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessageInput() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _textController,
-              decoration: const InputDecoration(
-                hintText: 'Digite uma mensagem...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.all(Radius.circular(24)),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _textController,
+                decoration: const InputDecoration(
+                  hintText: 'Digite uma mensagem...',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(24)),
+                  ),
                 ),
+                textCapitalization: TextCapitalization.sentences,
+                maxLines: null,
+                keyboardType: TextInputType.multiline,
               ),
-              textCapitalization: TextCapitalization.sentences,
-              maxLines: null, 
-              keyboardType: TextInputType.multiline,
             ),
-          ),
-          const SizedBox(width: 8),
-          LoadingButton.icon(
-            icon: const Icon(Icons.send),
-            onPressed: _sendMessage,
-            style: IconButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.primary,
-              foregroundColor: Colors.white,
+            const SizedBox(width: 8),
+            LoadingButton.icon(
+              icon: const Icon(Icons.send),
+              onPressed: _sendMessage,
+              style: IconButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                foregroundColor: Colors.white,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

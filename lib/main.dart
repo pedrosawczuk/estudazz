@@ -21,7 +21,7 @@ class InitialBinding extends Bindings {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);

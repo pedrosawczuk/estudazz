@@ -11,7 +11,9 @@ class NetworkController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _subscription = _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
+    _subscription = _connectivity.onConnectivityChanged.listen(
+      _updateConnectionStatus,
+    );
     _checkInitialConnectivity();
   }
 
@@ -20,37 +22,52 @@ class NetworkController extends GetxController {
     _updateConnectionStatus(connectivityResult);
   }
 
+  bool _isOfflineDialogOpen = false;
+
   void _updateConnectionStatus(List<ConnectivityResult> connectivityResult) {
-    if (connectivityResult.contains(ConnectivityResult.none)) {
-      if (!(Get.isDialogOpen ?? false)) {
-        Get.dialog(
-          PopScope(
-            canPop: false,
-            child: AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              title: const Row(
-                children: [
-                  Icon(Icons.wifi_off, color: ConstColors.redColor, size: 28),
-                  SizedBox(width: 10),
-                  Text('Você está offline'),
-                ],
-              ),
-              content: const Text(
-                'Parece que você perdeu a conexão com a internet.\n\nPor favor, conecte-se a uma rede para continuar usando o aplicativo sem erros.',
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
-          ),
-          barrierDismissible: false,
-        );
-      }
+    final isOffline =
+        connectivityResult.isEmpty ||
+        connectivityResult.every((result) => result == ConnectivityResult.none);
+
+    if (isOffline) {
+      _showOfflineDialog();
     } else {
-      if (Get.isDialogOpen ?? false) {
-        Get.back();
-      }
+      _closeOfflineDialog();
     }
+  }
+
+  void _showOfflineDialog() {
+    if (_isOfflineDialogOpen) return;
+    _isOfflineDialogOpen = true;
+
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Row(
+          children: [
+            Icon(Icons.wifi_off, color: ConstColors.redColor, size: 28),
+            SizedBox(width: 10),
+            Text('Você está offline'),
+          ],
+        ),
+        content: const Text(
+          'Parece que você perdeu a conexão com a internet.\n\nAlgumas funções podem não funcionar até você se conectar novamente.',
+          style: TextStyle(fontSize: 16),
+        ),
+        actions: [
+          TextButton(
+            onPressed: _closeOfflineDialog,
+            child: const Text('Entendi'),
+          ),
+        ],
+      ),
+    ).whenComplete(() => _isOfflineDialogOpen = false);
+  }
+
+  void _closeOfflineDialog() {
+    if (!_isOfflineDialogOpen) return;
+    _isOfflineDialogOpen = false;
+    Get.back();
   }
 
   @override

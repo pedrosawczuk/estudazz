@@ -7,16 +7,28 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 
 class AIResponseMessage extends StatefulWidget {
   final String text;
+  final bool animate;
+  final VoidCallback? onTypingComplete;
 
-  const AIResponseMessage({super.key, required this.text});
+  const AIResponseMessage({
+    super.key,
+    required this.text,
+    this.animate = false,
+    this.onTypingComplete,
+  });
 
   @override
   State<AIResponseMessage> createState() => _AIResponseMessageState();
 }
 
 class _AIResponseMessageState extends State<AIResponseMessage> {
-  String displayedText = '';
+  static const Duration _typingTick = Duration(milliseconds: 40);
+  static const int _typingTotalTicks = 40;
+
+  int _visibleLength = 0;
   Timer? _timer;
+
+  String get _displayedText => widget.text.substring(0, _visibleLength);
 
   @override
   void initState() {
@@ -26,26 +38,39 @@ class _AIResponseMessageState extends State<AIResponseMessage> {
 
   @override
   void didUpdateWidget(covariant AIResponseMessage oldWidget) {
+    super.didUpdateWidget(oldWidget);
     if (oldWidget.text != widget.text) {
       _startTyping();
     }
-    super.didUpdateWidget(oldWidget);
   }
 
   void _startTyping() {
     _timer?.cancel();
-    displayedText = '';
-    int index = 0;
 
-    _timer = Timer.periodic(const Duration(milliseconds: 10), (timer) {
-      if (index < widget.text.length) {
-        setState(() {
-          displayedText += widget.text[index];
-          index++;
-        });
-      } else {
+    if (!widget.animate) {
+      _visibleLength = widget.text.length;
+      return;
+    }
+
+    _visibleLength = 0;
+    final charsPerTick = (widget.text.length / _typingTotalTicks).ceil().clamp(
+      1,
+      widget.text.length + 1,
+    );
+
+    _timer = Timer.periodic(_typingTick, (timer) {
+      if (!mounted) {
         timer.cancel();
+        return;
       }
+      final nextLength = _visibleLength + charsPerTick;
+      if (nextLength >= widget.text.length) {
+        timer.cancel();
+        setState(() => _visibleLength = widget.text.length);
+        widget.onTypingComplete?.call();
+        return;
+      }
+      setState(() => _visibleLength = nextLength);
     });
   }
 
@@ -80,7 +105,7 @@ class _AIResponseMessageState extends State<AIResponseMessage> {
             ),
           ),
           child: MarkdownBody(
-            data: displayedText,
+            data: _displayedText,
             sizedImageBuilder: (config) => const SizedBox.shrink(),
             onTapLink: (text, href, title) {},
             styleSheet: MarkdownStyleSheet.fromTheme(

@@ -79,18 +79,23 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
           final updatedRoom = StudyRoomModel.fromFirestore(snapshot);
           final canChatNow = updatedRoom.members.length > 1;
 
+          final previousController = _tabController;
+          final controllerChanged = canChatNow != _canChat;
+
           setState(() {
             _currentRoom = updatedRoom;
+            if (controllerChanged) {
+              _canChat = canChatNow;
+              _tabController = TabController(
+                length: canChatNow ? 2 : 1,
+                vsync: this,
+              );
+            }
           });
 
-          if (canChatNow != _canChat) {
-            _canChat = canChatNow;
-            final newIndex = _tabController.index;
-            _tabController.dispose();
-            _tabController = TabController(
-              length: canChatNow ? 2 : 1,
-              vsync: this,
-              initialIndex: newIndex > 0 && !canChatNow ? 0 : newIndex,
+          if (controllerChanged) {
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => previousController.dispose(),
             );
           }
 
@@ -193,9 +198,7 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
                 IconButton(
                   icon: const Icon(Icons.copy),
                   onPressed: () {
-                    Clipboard.setData(
-                      ClipboardData(text: _ownerRoomCode),
-                    );
+                    Clipboard.setData(ClipboardData(text: _ownerRoomCode));
                     CustomSnackBar.show(
                       title: 'Copiado!',
                       message:
@@ -221,43 +224,45 @@ class _StudyRoomDetailsPageState extends State<StudyRoomDetailsPage>
           _isLoading
               ? const Center(child: CircularProgressIndicator())
               : ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _members.length,
-                  itemBuilder: (context, index) {
-                    final member = _members[index];
-                    return ListTile(
-                      leading: ClipOval(
-                        child: member.photoUrl.isNotEmpty
-                            ? CachedNetworkImage(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _members.length,
+                itemBuilder: (context, index) {
+                  final member = _members[index];
+                  return ListTile(
+                    leading: ClipOval(
+                      child:
+                          member.photoUrl.isNotEmpty
+                              ? CachedNetworkImage(
                                 imageUrl: member.photoUrl,
-                                placeholder: (context, url) =>
-                                    const CircularProgressIndicator(),
-                                errorWidget: (context, url, error) =>
-                                    Image.asset(
-                                  'assets/images/no-profile-photo.png',
-                                  fit: BoxFit.cover,
-                                  width: 40,
-                                  height: 40,
-                                ),
+                                placeholder:
+                                    (context, url) =>
+                                        const CircularProgressIndicator(),
+                                errorWidget:
+                                    (context, url, error) => Image.asset(
+                                      'assets/images/no-profile-photo.png',
+                                      fit: BoxFit.cover,
+                                      width: 40,
+                                      height: 40,
+                                    ),
                                 fit: BoxFit.cover,
                                 width: 40,
                                 height: 40,
                               )
-                            : Image.asset(
+                              : Image.asset(
                                 'assets/images/no-profile-photo.png',
                                 fit: BoxFit.cover,
                                 width: 40,
                                 height: 40,
                               ),
-                      ),
-                      title: Text(member.displayName),
-                      subtitle: Text(
-                        member.username.isNotEmpty ? '@${member.username}' : '',
-                      ),
-                    );
-                  },
-                ),
+                    ),
+                    title: Text(member.displayName),
+                    subtitle: Text(
+                      member.username.isNotEmpty ? '@${member.username}' : '',
+                    ),
+                  );
+                },
+              ),
           if (!isOwner) ...[
             const SizedBox(height: 32),
             LoadingButton(
